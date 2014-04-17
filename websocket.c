@@ -69,28 +69,17 @@ void *printInt(void *num);
 //GLOBALS
 static int serv;
 static clientStruct temp[NUM_OF_CLIENTS];
+static char ipAddress[16];
 //static int clients[NUM_OF_CLIENTS];
 
 //FUNCTIONS
 int main(void) {
 	int x = 0;
 	char cmd[1024];
+	strcpy(ipAddress, "127.0.0.1");//<------ENTER YOUR INTERNAL IP HERE
 	pthread_t serverThread;
 	pthread_create(&serverThread, NULL, consoleCommand, NULL);
 	serverStart();
-	//pthread_create(&serverThread, NULL, serverStart, NULL);
-	//pthread_join(serverThread, NULL);
-	/**
-	while (TRUE) {
-		printf("Please enter a command.\n");
-		scanf("%d", &x);
-		//printf("Initiating shutdown on socket %d\n", x);
-		shutdown(x, 2);
-		memset(&cmd, '\0', sizeof(cmd));
-	}//END WHILE LOOP
-	/**/
-	//printf("Doing Stuff Here\n\nDoing More Stuff Here\n");
-	//printf("Doing Stuff Here\n\nDoing More Stuff Here\n");
 	return 0;
 }
 
@@ -117,7 +106,7 @@ void *serverStart() {
 	
 	memset(&serverInfo, 0, sizeof(serverInfo));
 	serverInfo.sin_family = AF_INET;
-	serverInfo.sin_addr.s_addr =	inet_addr("127.0.0.1");//192.168.1.100
+	serverInfo.sin_addr.s_addr =	inet_addr(ipAddress);
 	serverInfo.sin_port =	htons(81);
 	
 	s =	socket(AF_INET, SOCK_STREAM, 0);
@@ -164,7 +153,9 @@ void *clientThread (void *s) {
 	
 	printf("New thread created\n");
 	bytes =	read(getSocket(cli), readBuffer, sizeof(readBuffer)-1);
+	
 	//printf("Connection received. Parsing headers.\n");
+	
 	for (i=0; i < bytes; i++) {
 		if (flag == 0) {
 			if (readBuffer[i] == '\r') {
@@ -257,7 +248,6 @@ void *clientThread (void *s) {
 			}//END FOR LOOP
 			
 			printf("Message from socket #%d: \"%s\"\n", getSocket(cli), writeBuffer);
-			//printf("Bytes: %d\tmaskIndex: %d\n", bytes, maskIndex);
 			
 			//send the decoded message to the performAction function
 			performAction(writeBuffer, &cli);
@@ -300,6 +290,7 @@ void *sendMessage(int sock, char *s, int len) {
 		frameCount = 4;
 	} else {
 		frame[1] = 127;
+		//NOTE: HAVE NOT FULLY CONFIGURED A MESSAGE OF THIS LENGTH (TODO)
 		//frame[2] = (char)( ((char)len >> 56) & (char)255 );
 		//frame[3] = (char)( ((char)len >> 48) & (char)255 );
 		//frame[4] = (char)( ((char)len >> 40) & (char)255 );
@@ -310,7 +301,7 @@ void *sendMessage(int sock, char *s, int len) {
 		frame[9] = (char)( ((char)len) & (char)255 );
 		frameCount = 10;
 	}//END IF
-	//reply =	malloc(sizeof(char) * (frameCount + len));
+	
 	memcpy(reply, frame, frameCount);
 	memcpy(reply + frameCount, s, len);
 	
@@ -505,11 +496,10 @@ pid_t execute(const char *command, clientStruct s, FILE **in, FILE **out, FILE *
 			close(fd[5]); // Close write end of stderr.
 			
 			//read what comes back from stdout
-			//memset(&buf, 0, sizeof(buf));
+			
 			buf =	malloc(sizeof(char) * 100);
 			while ((pos = read(fd[2], buf, 100)) > 0) {
 				buf[pos] =	'\0';
-				//printf("%s", buf);
 				sendMessage(getSocket(s), buf, strlen(buf));
 				memset(&buf, '\0', sizeof(buf));
 				free(buf);
