@@ -1,12 +1,28 @@
 /*
+ *
+ *   Copyright (C) 2014  Michael Cummins
+ *   License: GNUv2
+ *   
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 2 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ */
+/*
  *	@file: websocket.c
  * @author: Michael Cummins
  * @date: 4/11/2013 12:34PM
  * @compiler:	GCC
  * @32-bit: YES
  * @description:	This program implements a C version of websockets.
- *						When it starts it uses the internal IP of host and specified port
- *						to server websocket requests from client computers.
+ *                When it starts it uses the internal IP of host and specified port
+ *                to server websocket requests from client computers.
  *
  *	Websocket info
  * @supportedVersions:	13
