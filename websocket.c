@@ -44,49 +44,7 @@
 #include <wait.h>
 #include "sha1.h"
 #include "base64.h"
-
-//DEFINES
-#define TRUE 1
-#define FALSE 0
-
-#define CONNECTING 0
-#define OPEN 1
-#define CLOSING 2
-#define CLOSED 3
-#define NUM_OF_CLIENTS 600
-
-//STRUCTURES
-typedef struct client {
-	int sock;
-	int active;
-	int isAdmin;
-	char *name;
-	pthread_t t;
-} clientStruct;
-
-//PROTOTYPES
-void *serverStart();
-void *clientThread(void *s);
-
-int getSocket(clientStruct s);
-int getActive(clientStruct s);
-char *getName(clientStruct s);
-
-void *sendMessage(int sock, char *s, int len);
-
-void *alterStruct(int sock, char *action);
-pid_t execute(const char *command, clientStruct s, FILE **in, FILE **out, FILE **err);
-void *performAction(char *cmd, clientStruct *s);
-
-void *consoleCommand();
-
-void *printInt(void *num);
-
-//GLOBALS
-static int serv;
-static clientStruct temp[NUM_OF_CLIENTS];
-static char ipAddress[16];
-//static int clients[NUM_OF_CLIENTS];
+#include "functions.h"
 
 //FUNCTIONS
 int main(void) {
