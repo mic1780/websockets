@@ -46,6 +46,7 @@
 //GLOBALS
 static int serv;
 static char ipAddress[16];
+static clientStruct temp[NUM_OF_CLIENTS];
 
 
 
