@@ -20,6 +20,14 @@
 #ifndef WEBSOCK_C
 #define WEBSOCK_C
 
+//REQUIRED INCLUDES
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <unistd.h>
+
 
 //CONSTANTS
 #define TRUE 1
@@ -30,6 +38,8 @@
 #define CLOSING 2
 #define CLOSED 3
 #define NUM_OF_CLIENTS 600
+
+#define SH_MEM_KEY 1780
 
 
 //STRUCTURES
@@ -62,10 +72,7 @@ void *printInt(void *num);
 
 
 //GLOBALS
-static int serv;
 static clientStruct temp[NUM_OF_CLIENTS];
-static char ipAddress[16];
-//static int clients[NUM_OF_CLIENTS];
 
 
 //FUNCTIONS
@@ -79,7 +86,7 @@ static char ipAddress[16];
  * len:	the length of the string s
  */
 void *sendMessage(int sock, char *s, int len) {
-	int i, frameCount;
+	int frameCount;
 	uint16_t len16;
 	char frame[10];
 	char *reply =	malloc(sizeof(char) * (len + 8));
@@ -158,7 +165,7 @@ char *getName(clientStruct s) {
  *
  */
 void *alterStruct(int sock, char *action) {
-	int i;
+	int i = 0;
 	
 	if (strcmp(action, "init") == 0) {
 		for (i=0; i < NUM_OF_CLIENTS; i++) {
@@ -254,8 +261,11 @@ pid_t execute(const char *command, clientStruct s, FILE **in, FILE **out, FILE *
 			dup2(fd[3], STDOUT_FILENO); // Have stdout write to the second pipe.
 			dup2(fd[5], STDERR_FILENO); // Have stderr write to the third pipe.
 			
-			execlp("/bin/bash", "/bin/bash", "-c", command, NULL);
-			//execlp("/bin/bash", "/bin/bash", "-c", command, (char *)NULL);//command
+			//NEW execlp used with execute.exe (may get rid of this)
+			execlp("/bin/bash", "./execute.exe", "-c", command, NULL);
+			
+			//OLD execlp used with php script
+			//execlp("/bin/bash", "/bin/bash", "-c", command, NULL);
 			
 			perror("execlp() failed");
 			_exit(1);
@@ -288,6 +298,47 @@ pid_t execute(const char *command, clientStruct s, FILE **in, FILE **out, FILE *
 			return pid;
 	}//END SWITCH
 	
+}//END FUNCTION
+
+
+/*
+ *	performAction: this function will be used when we want to do
+ *						do anything with our socket.
+ *
+ *	ARGUMENTS
+ *	cmd:	A string of varying length that holds actions to perform (space seperated)
+ *	s:		the socket structure we want to perform our cammands on
+ */
+void *performAction(char *cmd, clientStruct *s) {
+	int i;
+	char fullCmd[1024];
+	
+	if (strncmp(cmd, "test", 4) == 0) {
+		execute("wshome ; php exec.php test", *s, NULL, NULL, NULL);
+	} else if (strncmp(cmd, "sql", 3) == 0) {
+		strcpy(fullCmd, "php exec.php sql '");
+		strcat(fullCmd, cmd + 4);
+		strcat(fullCmd, "'");
+		
+		execute(fullCmd, *s, NULL, NULL, NULL);
+	} else if (strncmp(cmd, "set", 3) == 0) {
+		if (strncmp(cmd + 4, "name", 4) == 0) {
+			s->name =	alterStruct(getSocket(*s), cmd);
+		}//END IF
+	} else if (strncmp(cmd, "sendall", 7) == 0) {
+		sprintf(fullCmd, "Message from %s: %s", getName(*s), cmd+8);
+		for (i=0; i < NUM_OF_CLIENTS; i++) {
+			if (getActive(temp[i]) == 0 || getSocket(*s) == getSocket(temp[i])) {
+				//do nothing
+			} else {
+				sendMessage(getSocket(temp[i]), fullCmd, strlen(fullCmd));
+			}//END IF
+		}//END FOR LOOP
+	} else {
+		sendMessage(getSocket(*s), cmd, strlen(cmd));
+	}//END IF
+
+	return NULL;
 }//END FUNCTION
 
 
