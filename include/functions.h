@@ -40,23 +40,26 @@
 void *serverStart();
 void *clientThread(void *s);
 
-int getSocket(clientStruct s);
-int getActive(clientStruct s);
-char *getName(clientStruct s);
+extern int getSocket(clientStruct s);
+extern int getActive(clientStruct s);
+extern char *getName(clientStruct s);
 
-void *sendMessage(int sock, char *s, int len);
+extern void *sendMessage(int sock, char *s, int len);
 
 void *alterStruct(int sock, char *action);
-pid_t execute(const char *command, clientStruct s, FILE **in, FILE **out, FILE **err);
-void *performAction(char *cmd, clientStruct *s);
+extern pid_t execute(const char *command, clientStruct s, FILE **in, FILE **out, FILE **err);
+extern void *performAction(char *cmd, clientStruct *s);
 
-void *consoleCommand();
+extern void *consoleCommand();
 
 void *printInt(void *num);
 
+clientStruct * socketArray(int position);
+
 
 //GLOBALS
-//static clientStruct temp[NUM_OF_CLIENTS];
+//extern clientStruct temp[NUM_OF_CLIENTS];
+//#include "globalVars.h"
 
 
 /*
@@ -70,69 +73,6 @@ void *printInt(void *num);
  * 
  * function from http://stackoverflow.com/questions/1047385/
  */
-pid_t execute(const char *command, clientStruct s, FILE **in, FILE **out, FILE **err) {
-	pid_t pid;
-	char *buf;
-	int pos;
-	int   fd[6];
-	
-	pipe(&fd[0]);
-	pipe(&fd[2]);
-	pipe(&fd[4]);
-	
-	switch (pid = fork()) {
-		case -1://error
-			perror("unable to fork()");
-			exit(1);
-			
-		case 0://child
-			close(fd[1]);   // Close write end of stdin.
-			close(fd[2]);   // Close read end of stdout.
-			close(fd[4]);   // Close read end of stderr.
-			
-			dup2(fd[0], STDIN_FILENO);  // Have stdin read from the first pipe.
-			dup2(fd[3], STDOUT_FILENO); // Have stdout write to the second pipe.
-			dup2(fd[5], STDERR_FILENO); // Have stderr write to the third pipe.
-			
-			//NEW execlp used with execute.exe (may get rid of this)
-			execlp("/bin/bash", "./execute.exe", "-c", command, NULL);
-			
-			//OLD execlp used with php script
-			//execlp("/bin/bash", "/bin/bash", "-c", command, NULL);
-			
-			perror("execlp() failed");
-			_exit(1);
-	
-		default://parent
-			close(fd[0]); // Close read end of stdin.
-			close(fd[3]); // Close write end of stdout.
-			close(fd[5]); // Close write end of stderr.
-			
-			//read what comes back from stdout
-			
-			buf =	malloc(sizeof(char) * 100);
-			while ((pos = read(fd[2], buf, 100)) > 0) {
-				buf[pos] =	'\0';
-				sendMessage(getSocket(s), buf, strlen(buf));
-				memset(&buf, '\0', sizeof(buf));
-				free(buf);
-				buf =	NULL;
-				buf =	malloc(sizeof(char) * 100);
-			}//END WHILE LOOP
-			memset(&buf, '\0', sizeof(buf));
-			free(buf);
-			buf = NULL;
-			
-			/**/
-			if (in)  *in  = fdopen(fd[1], "wb"); else close(fd[1]);
-			if (out) *out = fdopen(fd[2], "rb"); else close(fd[2]);//stdout ends here
-			if (err) *err = fdopen(fd[4], "rb"); else close(fd[4]);
-			/**/
-			return pid;
-	}//END SWITCH
-	
-}//END FUNCTION
-
 
 /*
  *	printInt: the is a legacy function used when testing threads.
@@ -140,10 +80,11 @@ pid_t execute(const char *command, clientStruct s, FILE **in, FILE **out, FILE *
  *	ARGUEMENTS
  *	num:	Any 32-bit integer
  */
+/*
 void *printInt (void *num) {
 	int *x =	(int *)num;
 	printf("%s: %d\n", __func__, *x);
 	return NULL;
 }
-
+*/
 #endif /* WEBSOCK_C */

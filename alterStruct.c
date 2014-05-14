@@ -4,19 +4,43 @@
 #include <unistd.h>
 #include "include/structs.h"
 #include "include/constants.h"
+#include "include/functions.h"
+#include "include/globalVars.h"
 
+clientStruct * socketArray(int position) {
+	static clientStruct temp[NUM_OF_CLIENTS];
+	return &temp[position];
+}
 //STRUCT HELPER FUNCTIONS
 
 int getSocket(clientStruct s) {
 	return s.sock;
 }
+void setSocket(clientStruct * s, int val) {
+	s->sock = val;
+}
 
 int getActive(clientStruct s) {
 	return s.active;
 }
+void setActive(clientStruct * s, int bitFlag) {
+	s->active = bitFlag;
+}
 
 char *getName(clientStruct s) {
 	return s.name;
+}
+void setName(clientStruct s, char * name) {
+	if (name == NULL) {
+		free(s.name);
+		s.name = NULL;
+	} else {
+		if (s.name != NULL) {
+			setName(s, NULL);
+		}//END IF
+		s.name =	malloc(sizeof(char) * (strlen(name) + 1));
+		strcpy(s.name, name);
+	}//END IF
 }
 
 /*
@@ -40,35 +64,42 @@ char *getName(clientStruct s) {
  */
 void *alterStruct(int sock, char *action) {
 	int i = 0;
+	printf("test\n");
 	
 	if (strcmp(action, "init") == 0) {
 		for (i=0; i < NUM_OF_CLIENTS; i++) {
 			
-			if (temp[i].active == FALSE) {
+			if (getActive(*socketArray(i)) == FALSE) {
 				break;
 			}
 			
 		}//END FOR LOOP
 		
-		temp[i].active =	TRUE;
-		temp[i].sock =		sock;
+		setActive(socketArray(i), TRUE);
+		//temp[i].active =	TRUE;
+		setSocket(socketArray(i), sock);
+		//temp[i].sock =		sock;
 		
 		return (int *)i;
 	} else if (strcmp(action, "close") == 0) {
 		for (i=0; i < NUM_OF_CLIENTS; i++) {
 			
-			if (getSocket(temp[i]) == sock) {
+			if (getSocket(*socketArray(i)) == sock) {
 				break;
 			}
 			
 		}//END FOR LOOP
-		close(getSocket(temp[i]));
+		close(getSocket(*socketArray(i)));
 		
-		free(temp[i].name);
-		temp[i].name =	NULL;
+		setName(*socketArray(i), NULL);
+		//free(temp[i].name);
+		//temp[i].name =	NULL;
 		
-		temp[i].active =	FALSE;
-		temp[i].sock =	0;
+		setActive(socketArray(i), FALSE);
+		//temp[i].active =	FALSE;
+		
+		setSocket(socketArray(i), 0);
+		//temp[i].sock =	0;
 		
 		return NULL;
 	} else if (strncmp(action, "set", 3) == 0) {
@@ -79,22 +110,24 @@ void *alterStruct(int sock, char *action) {
 		 */
 		if (strncmp(action + 4, "name", 4) == 0) {
 			for (i=0; i < NUM_OF_CLIENTS; i++) {
-				if (getSocket(temp[i]) == sock) {
+				if (getSocket(*socketArray(i)) == sock) {
 					
 					break;
 					
 				}//END IF
 			}//END FOR LOOP
 			
-			temp[i].name =	malloc(sizeof(char) * (strlen(action + 9) + 1));
-			strcpy(temp[i].name, action + 9);
-			return getName(temp[i]);
+			setName(*socketArray(i), action + 9);
+			//temp[i].name =	malloc(sizeof(char) * (strlen(action + 9) + 1));
+			//strcpy(temp[i].name, action + 9);
+			return getName(*socketArray(i));
 		}//END IF
 		
 		return NULL;
 	}//END IF
 	
 	printf("\n\nWe were able to alter struct\n\n");
-	printf("temp[%d]\n\tactive = %d\n\tsock = %d\n\n", i, temp[i].active, temp[i].sock);
+	printf("temp[%d]\n\tactive = %d\n\tsock = %d\n\n", i, getActive(*socketArray(i)), getSocket(*socketArray(i)));
+	//printf("temp[%d]\n\tactive = %d\n\tsock = %d\n\n", i, temp[i].active, temp[i].sock);
 	return NULL;
 }//END FUNCTION

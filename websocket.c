@@ -31,6 +31,10 @@
  */
 
 //INCLUDES
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include <math.h>
 #include <pthread.h>
 #include <sys/types.h>
@@ -41,10 +45,11 @@
 #include <wait.h>
 #include "include/sha1.h"
 #include "include/base64.h"
+#include "include/constants.h"
+#include "include/structs.h"
 #include "include/functions.h"
 
 //GLOBALS
-static int serv;
 static char ipAddress[16];
 static clientStruct temp[NUM_OF_CLIENTS];
 
@@ -96,9 +101,11 @@ void *serverStart() {
 	while (TRUE) {
 		clientSocket =	accept(s, &clientInfo, &clientInfoLen);
 		i = (int)alterStruct(clientSocket, "init");
+		printf("setSocket gave socket #%d a value of %d\n", clientSocket, getSocket(*socketArray(i)));
+		printf("setName gave socket #%d a name of %s\n", clientSocket, getName(*socketArray(i)));
 		printf("Client %d connected\n", clientSocket);
-		pthread_create(&(temp[i].t), NULL, clientThread, &temp[i]);
-		//temp[i].t =	thread1;
+		pthread_create(&((socketArray(i))->t), NULL, clientThread, socketArray(i));
+		//pthread_create(&(temp[i].t), NULL, clientThread, &temp[i]);
 	}//END WHILE LOOP
 	/**
 	while (TRUE) {
@@ -131,8 +138,7 @@ void *clientThread (void *s) {
 	
 	printf("New thread created\n");
 	bytes =	read(getSocket(cli), readBuffer, sizeof(readBuffer)-1);
-	
-	//printf("Connection received. Parsing headers.\n");
+	printf("Connection received. Parsing headers.\n");
 	
 	for (i=0; i < bytes; i++) {
 		if (flag == 0) {
@@ -229,7 +235,7 @@ void *clientThread (void *s) {
 			
 			//send the decoded message to the performAction function
 			performAction(writeBuffer, &cli);
-			execute("./execute.exe sendall Hello World!", cli, NULL, NULL, NULL);
+			//execute("./execute.exe sendall Hello World!", cli, NULL, NULL, NULL);
 			
 			//reset buffer to NULL bytes
 			memset(&writeBuffer, '\0', sizeof(writeBuffer));

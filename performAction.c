@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "include/structs.h"
-//#include "include/functions.h"
+#include "include/constants.h"
+#include "include/functions.h"
+#include "include/globalVars.h"
 
 /*
  *	performAction: this function will be used when we want to do
@@ -30,11 +32,15 @@ void *performAction(char *cmd, clientStruct *s) {
 		}//END IF
 	} else if (strncmp(cmd, "sendall", 7) == 0) {
 		sprintf(fullCmd, "Message from %s: %s", getName(*s), cmd+8);
+		sendMessage(getSocket(*s), fullCmd, strlen(fullCmd));
+		//printf("we got here\n");
 		for (i=0; i < NUM_OF_CLIENTS; i++) {
-			if (getActive(temp[i]) == 0 || getSocket(*s) == getSocket(temp[i])) {
+			if (getActive(*socketArray(i)) == 0 || getSocket(*s) == getSocket(*socketArray(i))) {
+			//if (getActive(temp[i]) == 0 || getSocket(*s) == getSocket(temp[i])) {
 				//do nothing
 			} else {
-				sendMessage(getSocket(temp[i]), fullCmd, strlen(fullCmd));
+				sendMessage(getSocket(*socketArray(i)), fullCmd, strlen(fullCmd));
+				//sendMessage(getSocket(temp[i]), fullCmd, strlen(fullCmd));
 			}//END IF
 		}//END FOR LOOP
 	} else {
