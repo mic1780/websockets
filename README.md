@@ -7,7 +7,7 @@ Current Requirements
 ====================
 <ol>
 	<li>GNU GCC compiler</li>
-	<li>PHP >= 5.3.13 in windows PATH</li>
+	<li>Access to a command-line that has BASH</li>
 </ol>
 
 <hr>
@@ -15,3 +15,13 @@ Some of the code must be changed due to this program being developed for use fro
 This will be changed over time while I make the files more dynamic.
 I eventually plan to get rid of the PHP files and replace them with a C version of database connection.
 In the meantime feel free to use and alter this project however you see fit.
+
+Getting Started
+===============
+<ol>
+	<li>Download files using clone or extracting the zip</li>
+	<li>Navigate to the directory you extracted the files to using the command line</li>
+	<li>Generate the functions library using the following command: <pre>./generateSO.sh sendMessage alterStruct performAction execute</pre></li>
+	<li>Create an executable file using: <pre>gcc -L. -o websocket websocket.c -lfunctions</pre></li>
+	<li>Run the newly created websocket program</li>
+</ol>
