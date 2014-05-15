@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+//#include <unistd.h>
+#include <sys/socket.h>
 #include "include/structs.h"
 #include "include/constants.h"
 #include "include/functions.h"
@@ -9,9 +10,25 @@
 
 clientStruct * socketArray(int position) {
 	static clientStruct temp[NUM_OF_CLIENTS];
+	static int initialized = 0;
+	
+	if (initialized == 0) {
+		printf("\n\n\t\t **** INITIALIZING temp ****\n\n");
+		initialized++;
+		initializeSockets(temp);
+	}
 	return &temp[position];
 }
 //STRUCT HELPER FUNCTIONS
+
+void initializeSockets(clientStruct * sock) {
+	int i;
+	for (i=0; i < NUM_OF_CLIENTS; i++) {
+		setSocket(&sock[i], 0);
+		setActive(&sock[i], FALSE);
+		sock[i].name = NULL;
+	}//END FOR LOOP
+}//END FUNCTION
 
 int getSocket(clientStruct s) {
 	return s.sock;
@@ -30,16 +47,16 @@ void setActive(clientStruct * s, int bitFlag) {
 char *getName(clientStruct s) {
 	return s.name;
 }
-void setName(clientStruct s, char * name) {
-	if (name == NULL) {
-		free(s.name);
-		s.name = NULL;
-	} else {
-		if (s.name != NULL) {
+void setName(clientStruct * s, char * name) {
+	if (name == NULL && s->name != NULL) {
+		free(s->name);
+		s->name = NULL;
+	} else if (name != NULL) {
+		if (s->name != NULL) {
 			setName(s, NULL);
 		}//END IF
-		s.name =	malloc(sizeof(char) * (strlen(name) + 1));
-		strcpy(s.name, name);
+		s->name =	malloc(sizeof(char) * (strlen(name) + 1));
+		strcpy(s->name, name);
 	}//END IF
 }
 
@@ -64,7 +81,6 @@ void setName(clientStruct s, char * name) {
  */
 void *alterStruct(int sock, char *action) {
 	int i = 0;
-	printf("test\n");
 	
 	if (strcmp(action, "init") == 0) {
 		for (i=0; i < NUM_OF_CLIENTS; i++) {
@@ -89,9 +105,15 @@ void *alterStruct(int sock, char *action) {
 			}
 			
 		}//END FOR LOOP
+		
+		if (i == NUM_OF_CLIENTS) {
+			return -1;
+		}//END IF
+		
+		shutdown(getSocket(*socketArray(i)), 2);
 		close(getSocket(*socketArray(i)));
 		
-		setName(*socketArray(i), NULL);
+		setName(socketArray(i), NULL);
 		//free(temp[i].name);
 		//temp[i].name =	NULL;
 		
@@ -117,7 +139,7 @@ void *alterStruct(int sock, char *action) {
 				}//END IF
 			}//END FOR LOOP
 			
-			setName(*socketArray(i), action + 9);
+			setName(socketArray(i), action + 9);
 			//temp[i].name =	malloc(sizeof(char) * (strlen(action + 9) + 1));
 			//strcpy(temp[i].name, action + 9);
 			return getName(*socketArray(i));

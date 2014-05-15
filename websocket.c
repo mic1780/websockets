@@ -51,8 +51,27 @@
 
 //GLOBALS
 static char ipAddress[16];
-static clientStruct temp[NUM_OF_CLIENTS];
 
+int listActiveSockets() {
+	int i, j;
+	clientStruct client;
+	j=0;
+	printf("\t* List of active sockets *\n\n");
+	for (i=0; i < NUM_OF_CLIENTS; i++) {
+		client = *socketArray(i);
+		if (getActive(client) == TRUE) {
+			printf("%d: Socket #%03d (%s)%c", i, getSocket(client), getName(client), (j % 2 == 0 ? '\t' : '\n'));
+			j++;
+		}//END IF
+	}//END FOR
+	if (j == 0)
+		printf("(no active sockets)");
+	if (j % 2 == 0)
+		printf("\n");
+	
+	printf("\n\t* End of list *\n");
+	return j;
+}//END FUNCTION
 
 
 //FUNCTIONS
@@ -67,13 +86,36 @@ int main(void) {
 }
 
 void *consoleCommand() {
+	int activeCount;
 	long x;
 	char cmd[100];
 	while (TRUE) {
-		printf("Please enter a command.\n");
+		
+		printf("Console is ready for the next command.\n");
+		memset(&cmd, '\0', sizeof(cmd)-1);
 		read(STDIN_FILENO, cmd, sizeof(cmd));
-		x =	strtol(cmd, NULL, 10);
-		shutdown(x, 2);
+		
+		if (strncmp(cmd, "list", 4) == 0) {
+			listActiveSockets();
+		} else if (strncmp(cmd, "kill", 4) == 0) {
+			activeCount = listActiveSockets();
+			if (activeCount > 0) {
+				printf("\nWhich socket would you like to kill?\n");
+				memset(&cmd, '\0', sizeof(cmd)-1);
+				read(STDIN_FILENO, cmd, sizeof(cmd));
+				x =	strtol(cmd, NULL, 10);
+				alterStruct(getSocket(*socketArray(x)), "close");
+			} else {
+				printf("\nNo active sockets to kill\n");
+			}//END IF
+		} else if (strncmp(cmd, "reload", 6) == 0) {
+			//do nothing (for the moment)
+		} else if (strncmp(cmd, "exit", 4) == 0) {
+			printf("Shutting down server... \n");
+			exit(0);
+		}//END IF
+		printf("\n");
+		
 	}//END WHILE LOOP
 	return NULL;
 }//END FUNCTION
@@ -102,7 +144,7 @@ void *serverStart() {
 		clientSocket =	accept(s, &clientInfo, &clientInfoLen);
 		i = (int)alterStruct(clientSocket, "init");
 		printf("setSocket gave socket #%d a value of %d\n", clientSocket, getSocket(*socketArray(i)));
-		printf("setName gave socket #%d a name of %s\n", clientSocket, getName(*socketArray(i)));
+		//printf("setName gave socket #%d a name of %s\n", clientSocket, getName(*socketArray(i)));
 		printf("Client %d connected\n", clientSocket);
 		pthread_create(&((socketArray(i))->t), NULL, clientThread, socketArray(i));
 		//pthread_create(&(temp[i].t), NULL, clientThread, &temp[i]);
@@ -202,8 +244,12 @@ void *clientThread (void *s) {
 		
 		//If the byteStream was closed or we receive a close byte, confirm close and release connection
 		if (bytes <= 0 || readBuffer[0] == '\x88') {
-			printf("Client #%d Closed.\n", getSocket(cli));
-			alterStruct(getSocket(cli), "close");
+			if ((int)alterStruct(getSocket(cli), "close") == -1) {
+				printf("\n\n\t\t **** ERROR: CAUGHT CLOSE ATTEMPT OF BAD SOCKET ****\n");
+				printf("\t\t **** IF KILL COMMAND GIVEN FROM CONSOLE IGNORE THIS ****\n\n");
+			} else {
+				printf("Client #%d Closed.\n", getSocket(cli));
+			}//END IF
 			break;
 		} else if (bytes > 0) {
 			

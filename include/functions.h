@@ -41,14 +41,21 @@ void *serverStart();
 void *clientThread(void *s);
 
 extern int getSocket(clientStruct s);
+extern void setSocket(clientStruct * s, int val);
+
 extern int getActive(clientStruct s);
+extern void setActive(clientStruct * s, int bitFlag);
+
 extern char *getName(clientStruct s);
+extern void setName(clientStruct * s, char * name);
 
 extern void *sendMessage(int sock, char *s, int len);
 
-void *alterStruct(int sock, char *action);
+extern void *alterStruct(int sock, char *action);
 extern pid_t execute(const char *command, clientStruct s, FILE **in, FILE **out, FILE **err);
 extern void *performAction(char *cmd, clientStruct *s);
+
+extern void initializeSockets(clientStruct * sock);
 
 extern void *consoleCommand();
 

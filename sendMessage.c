@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include "include/functions.h"
 
 /*
  * sendMessage: this function is used then we want to send message (s)
@@ -20,7 +21,6 @@ void *sendMessage(int sock, char *s, int len) {
 	char frame[10];
 	char *reply =	malloc(sizeof(char) * (len + 8));
 	
-	//len = strlen(s);
 	frame[0] =	'\x81';
 	
 	if (len <= 125) {

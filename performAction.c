@@ -28,12 +28,13 @@ void *performAction(char *cmd, clientStruct *s) {
 		execute(fullCmd, *s, NULL, NULL, NULL);
 	} else if (strncmp(cmd, "set", 3) == 0) {
 		if (strncmp(cmd + 4, "name", 4) == 0) {
-			s->name =	alterStruct(getSocket(*s), cmd);
+			setName(s, cmd);
+			//s->name =	alterStruct(getSocket(*s), cmd);
 		}//END IF
 	} else if (strncmp(cmd, "sendall", 7) == 0) {
 		sprintf(fullCmd, "Message from %s: %s", getName(*s), cmd+8);
 		sendMessage(getSocket(*s), fullCmd, strlen(fullCmd));
-		//printf("we got here\n");
+		
 		for (i=0; i < NUM_OF_CLIENTS; i++) {
 			if (getActive(*socketArray(i)) == 0 || getSocket(*s) == getSocket(*socketArray(i))) {
 			//if (getActive(temp[i]) == 0 || getSocket(*s) == getSocket(temp[i])) {
