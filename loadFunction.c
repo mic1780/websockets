@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define _GNU_SOURCE
 #include <dlfcn.h>
 #include "include/functions.h"
 
@@ -23,14 +22,13 @@ void * loadFunction(char *func, void ** args) {
 	//void *(*funcPtr);
 	
 	
-	
 	filenameLength = strlen("lib/lib") + strlen(func) + strlen(".dll");
 	filename = malloc(sizeof(char) * (filenameLength + 1));
 	strcpy(filename, "lib/lib");
 	strcat(filename, func);
 	strcat(filename, ".dll");
 	
-	handle = dlmopen(LM_ID_NEWLM, filename, RTLD_LAZY | RTLD_GLOBAL);
+	handle = dlopen(filename, RTLD_LAZY);
 	free(filename);
 	if (!handle) {
 		checkForError(dlerror());

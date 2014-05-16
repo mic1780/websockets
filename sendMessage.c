@@ -4,7 +4,6 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <unistd.h>
-//#include "include/constants.h"
 #include "include/structs.h"
 //#include "include/functions.h"
 
