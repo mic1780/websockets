@@ -4,7 +4,9 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <unistd.h>
-#include "include/functions.h"
+//#include "include/constants.h"
+#include "include/structs.h"
+//#include "include/functions.h"
 
 /*
  * sendMessage: this function is used then we want to send message (s)
@@ -48,8 +50,11 @@ void *sendMessage(int sock, char *s, int len) {
 	memcpy(reply, frame, frameCount);
 	memcpy(reply + frameCount, s, len);
 	
+	//printf("sock: %d\ts: %s\tlen: %d\n", sock, s, len);
 	if (write(sock, reply, strlen(reply)) <= 0) {
-		printf("\n\nWE ARE NOT WRITING!\n\n");
+		printf("\n\nWE ARE NOT WRITING!!\n\n");
+	} else {
+		//printf("we did write\n");
 	}//END IF
 	
 	free(reply);

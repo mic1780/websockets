@@ -6,7 +6,7 @@
 #include "include/structs.h"
 #include "include/constants.h"
 #include "include/functions.h"
-#include "include/globalVars.h"
+//#include "include/globalVars.h"
 
 clientStruct * socketArray(int position) {
 	static clientStruct temp[NUM_OF_CLIENTS];
@@ -29,6 +29,8 @@ void initializeSockets(clientStruct * sock) {
 		sock[i].name = NULL;
 	}//END FOR LOOP
 }//END FUNCTION
+
+/*
 
 int getSocket(clientStruct s) {
 	return s.sock;
@@ -59,6 +61,7 @@ void setName(clientStruct * s, char * name) {
 		strcpy(s->name, name);
 	}//END IF
 }
+*/
 
 /*
  * alterStruct: this function is used when we want to change a value inside
@@ -107,7 +110,7 @@ void *alterStruct(int sock, char *action) {
 		}//END FOR LOOP
 		
 		if (i == NUM_OF_CLIENTS) {
-			return -1;
+			return (int *)-1;
 		}//END IF
 		
 		shutdown(getSocket(*socketArray(i)), 2);

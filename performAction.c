@@ -4,7 +4,10 @@
 #include "include/structs.h"
 #include "include/constants.h"
 #include "include/functions.h"
-#include "include/globalVars.h"
+//#include "include/globalVars.h"
+
+void ** createHolder(int sock, char *s, int len);
+void destroyHolder(void ** holder);
 
 /*
  *	performAction: this function will be used when we want to do
@@ -17,15 +20,16 @@
 void *performAction(char *cmd, clientStruct *s) {
 	int i;
 	char fullCmd[1024];
+	void ** holder;
 	
 	if (strncmp(cmd, "test", 4) == 0) {
-		execute("wshome ; php exec.php test", *s, NULL, NULL, NULL);
+		//execute("wshome ; php exec.php test", *s, NULL, NULL, NULL);
 	} else if (strncmp(cmd, "sql", 3) == 0) {
 		strcpy(fullCmd, "php exec.php sql '");
 		strcat(fullCmd, cmd + 4);
 		strcat(fullCmd, "'");
 		
-		execute(fullCmd, *s, NULL, NULL, NULL);
+		//execute(fullCmd, *s, NULL, NULL, NULL);
 	} else if (strncmp(cmd, "set", 3) == 0) {
 		if (strncmp(cmd + 4, "name", 4) == 0) {
 			setName(s, cmd);
@@ -45,8 +49,30 @@ void *performAction(char *cmd, clientStruct *s) {
 			}//END IF
 		}//END FOR LOOP
 	} else {
-		sendMessage(getSocket(*s), cmd, strlen(cmd));
+		//holder = malloc(sizeof(void *) * 3);
+		//holder[0] = (int *)getSocket(*s);
+		//holder[1] = (char *)cmd;
+		//holder[2] = (int *)strlen(cmd);
+		holder = createHolder(getSocket(*s), cmd, strlen(cmd));
+		//sendMessage(getSocket(*s), cmd, strlen(cmd));
+		loadFunction("sendMessage", holder);
+		destroyHolder(holder);
+		//free(holder);
 	}//END IF
 
 	return NULL;
 }//END FUNCTION
+
+void ** createHolder(int sock, char *s, int len) {
+	void ** holder;
+	holder = malloc(sizeof(void *) * 3);
+	holder[0] = (int *)sock;
+	holder[1] = (char *)s;
+	holder[2] = (int *)len;
+	return holder;
+}
+
+void destroyHolder(void ** holder) {
+	free(holder);
+	holder = NULL;
+}
