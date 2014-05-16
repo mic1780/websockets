@@ -1,0 +1,80 @@
+<html>
+	<head>
+		<title>Websocket Test Page</title>
+		<style>
+		#log {
+			width: 100%;
+			height: 80%;
+			overflow: scroll;
+		}
+		</style>
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+		<script type="text/JavaScript">
+		var s;
+		var tOut;
+		var quickSend =	false;
+		var buffer;
+		$(function() {
+			$('#connect').click(function(e) {
+				s =	new WebSocket("ws://" + window.location.host + ":81/");
+				s.onopen =	function() {
+					var getName =	$('#username').val();
+					s.send('set name ' + (getName === '' ? 'socket' : getName));
+					$('#log').html('You are now connected.');
+					$('#connect')[0].disabled =	true;
+					$('#username')[0].disabled =	true;
+					$('#send')[0].disabled =	false;
+					$('#close')[0].disabled =	false;
+				};
+				s.onclose =	function() {
+					$('#log').html($('#log').html() + '<br>WebSocket is now closed.');
+					$('#close')[0].disabled =	true;
+					$('#send')[0].disabled =		true;
+					$('#connect')[0].disabled =	false;
+					$('#username')[0].disabled =	false;
+					s =	undefined;
+				};
+				s.onmessage =	function(msg) {
+					testVar = msg;
+					if (quickSend === false) {
+						buffer =	msg.data;
+						//$('#log').html($('#log').html() + '<br>Message says: <br><pre>' + msg.data.replace('\\n', "<br>"));
+						quickSend =	true;
+					} else {
+						buffer +=	msg.data;
+						clearTimeout(tOut);
+						//$('#log').html($('#log').html() + msg.data.replace('\\n', "<br>"));
+					}//END IF
+					tOut =	setTimeout(function() {
+						quickSend = false;
+						$('#log').html($('#log').html() + '<br>Message says: <br><pre>' + buffer + '</pre>');
+					}, 300);
+				};
+				s.onerror =	function(e) {
+					console.log(e);
+				};//END FUNCTION
+			});
+			
+			$('#send').click(function(e) {
+				s.send($('#command').val());
+				//s.send('test');
+				$('#log').html($('#log').html() + '<br>Send message: ' + $('#command').val());
+			});
+			
+			$('#close').click(function(e) {
+				s.close();
+			});
+		});
+		</script>
+	</head>
+	<body>
+		Username: <input type="text" id="username" value="" />
+		<button id="connect">Connect</button>
+		<button id="close" disabled="true">Disconnect</button>
+		<br>
+		<textarea id="command">Hello World</textarea>
+		<button id="send" disabled="true">Send Message</button>
+		<br>
+		<div id="log"></div>
+	</body>
+</html>
