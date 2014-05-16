@@ -54,8 +54,10 @@ void *performAction(char *cmd, clientStruct *s) {
 		//holder[1] = (char *)cmd;
 		//holder[2] = (int *)strlen(cmd);
 		holder = createHolder(getSocket(*s), cmd, strlen(cmd));
-		//sendMessage(getSocket(*s), cmd, strlen(cmd));
+		printf("\t**** doing dynamic sendMessage ****\n");
 		loadFunction("sendMessage", holder);
+		//printf("\t**** doing normal sendMessage ****\n");
+		//sendMessage(getSocket(*s), cmd, strlen(cmd));
 		destroyHolder(holder);
 		//free(holder);
 	}//END IF
@@ -67,12 +69,17 @@ void ** createHolder(int sock, char *s, int len) {
 	void ** holder;
 	holder = malloc(sizeof(void *) * 3);
 	holder[0] = (int *)sock;
-	holder[1] = (char *)s;
+	holder[1] = malloc(sizeof(char) * (len+1));
+	memcpy(holder[1], s, len);
 	holder[2] = (int *)len;
 	return holder;
 }
 
 void destroyHolder(void ** holder) {
+	holder[0] = NULL;
+	free(holder[1]);
+	holder[1] = NULL;
+	holder[2] = NULL;
 	free(holder);
 	holder = NULL;
 }

@@ -15,6 +15,7 @@ int checkForError(char *error) {
 
 void * loadFunction(char *func, void ** args) {
 	void *handle;
+	void * functionPtr;
 	//void * (*alterStruct)(int sock, char *action);
 	
 	int filenameLength;
@@ -36,14 +37,21 @@ void * loadFunction(char *func, void ** args) {
 	
 	dlerror();
 	
+	typedef void * (*funcType)(int, char *, int);
+	functionPtr = dlsym(handle, func);
+	checkForError(dlerror());
+	funcType sendMessage = (funcType) functionPtr;
+	(sendMessage)((int)args[0], (char *)args[1], (int)args[2]);
+	dlclose(handle);
+	handle = NULL;
+	return NULL;
+	
 	if (strncmp(func, "sendMessage", strlen(func)) == 0) {
 		void * (*funcPtr)(int, char *, int);
-		//*(void **) (&funcPtr) = dlsym(handle, func);
-		funcPtr = (void *)dlsym(handle, func);
+		*(void **) (&funcPtr) = dlsym(handle, func);
+		//funcPtr = (void *)dlsym(handle, func);
 		checkForError(dlerror());
 		(*funcPtr)((int)args[0], (char *)args[1], (int)args[2]);
-		//free(*(void **)(&funcPtr));
-		//*(void **) (&funcPtr) = NULL;
 	}// else if (strncmp(func, "alterStruct", strlen(func)) == 0) {
 		//void * (*funcPtr)(int sock, char *action);
 	//} else if (strncmp(func, "execute", strlen(func)) == 0) {

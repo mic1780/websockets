@@ -22,6 +22,7 @@ void *sendMessage(int sock, char *s, int len) {
 	char frame[10];
 	char *reply =	malloc(sizeof(char) * (len + 8));
 	
+	printf("sock:\t\"%d\"\ns:\t\"%s\"\nlen:\t\"%d\"\n", sock, s, len);//monitor what goes into the function
 	frame[0] =	'\x81';
 	
 	if (len <= 125) {
