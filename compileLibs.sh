@@ -20,7 +20,7 @@ for i in $*; do
 	if [ "$i" == "performAction" ]; then
 		gcc -shared -o lib/lib$i.dll tmp/*.o libfunctions.c
 	else
-		gcc -shared -o lib/lib$i.dll tmp/$i.o libfunctions.c
+		gcc -shared -o lib/lib$i.dll libfunctions.c tmp/$i.o
 	fi
 done
 rm -r tmp

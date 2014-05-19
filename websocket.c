@@ -101,30 +101,44 @@ void *consoleCommand() {
 	while (TRUE) {
 		
 		printf("Console is ready for the next command.\n");
-		memset(cmd, '\0', sizeof(cmd)-1);
+		memset(&cmd, '\0', sizeof(cmd)-1);
 		read(STDIN_FILENO, cmd, sizeof(cmd));
 		
 		if (strncmp(cmd, "list", 4) == 0) {
+			//Command: list
 			listActiveSockets();
+			//End list
 		} else if (strncmp(cmd, "kill", 4) == 0) {
+			//Command: kill
 			activeCount = listActiveSockets();
 			if (activeCount > 0) {
-				printf("\nWhich socket would you like to kill?\n");
+				printf("\nWhich socket would you like to kill? (-1 to abort kill)\n");
 				memset(&cmd, '\0', sizeof(cmd)-1);
 				read(STDIN_FILENO, cmd, sizeof(cmd));
 				x =	strtol(cmd, NULL, 10);
-				alterStruct(getSocket(*socketArray(x)), "close");
+				if (x < -1) {
+					printf("bad number, aborting!\n");
+				} else if (x == -1) {
+					printf("-1 entered. Aborting\n");
+				} else {
+					alterStruct(getSocket(*socketArray(x)), "close");
+				}//END IF
 			} else {
 				printf("\nNo active sockets to kill\n");
 			}//END IF
+			//End kill
 		} else if (strncmp(cmd, "reload", 6) == 0) {
 			//do nothing (for the moment)
 		} else if (strncmp(cmd, "exit", 4) == 0) {
+			//Command: exit
 			printf("Shutting down server... \n");
 			exit(0);
+			//End exit
 		} else {
+			//Command: (command unknow situation)
 			printf("Invalid command.\n");
 			printCommandList();
+			//End (command unknow situation)
 		}//END IF
 		printf("\n");
 		
@@ -156,17 +170,11 @@ void *serverStart() {
 		clientSocket =	accept(s, &clientInfo, &clientInfoLen);
 		i = (int)alterStruct(clientSocket, "init");
 		printf("setSocket gave socket #%d a value of %d\n", clientSocket, getSocket(*socketArray(i)));
-		//printf("setName gave socket #%d a name of %s\n", clientSocket, getName(*socketArray(i)));
 		printf("Client %d connected\n", clientSocket);
 		pthread_create(&((socketArray(i))->t), NULL, clientThread, socketArray(i));
-		//pthread_create(&(temp[i].t), NULL, clientThread, &temp[i]);
 	}//END WHILE LOOP
-	/**
-	while (TRUE) {
-		pthread_create(&thread1, NULL, printInt, &x);
-		pthread_join(thread1, NULL);
-	}//END WHILE LOOP
-	/**/
+	
+	//pthread_join(thread1, NULL);
 	return NULL;
 }
 
@@ -293,7 +301,6 @@ void *clientThread (void *s) {
 			
 			//send the decoded message to the performAction function
 			performAction(writeBuffer, &cli);
-			//execute("./execute.exe sendall Hello World!", cli, NULL, NULL, NULL);
 			
 			//reset buffer to NULL bytes
 			memset(&writeBuffer, '\0', sizeof(writeBuffer));
