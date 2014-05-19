@@ -65,6 +65,7 @@ extern pid_t execute(const char *command, clientStruct s, FILE **in, FILE **out,
 extern void *performAction(char *cmd, clientStruct *s);
 
 //dlFunctions.c
-extern void * loadFunction(char *func, void ** args);
+//extern void * loadFunction(char *func, void ** args);
+extern void * doFunction(char *func, void ** args);
 
 #endif /* WEBSOCK_C */

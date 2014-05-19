@@ -13,13 +13,13 @@ int checkForError(char *error) {
 	return 0;
 }//END IF
 
-void * loadFunction(char *func, void ** args) {
+void * doFunction(char *func, void ** args) {
 	void *handle;
 	void * functionPtr;
 	//void * (*alterStruct)(int sock, char *action);
 	
 	int filenameLength;
-	char * filename;
+	char * filename = NULL;
 	//void *(*funcPtr);
 	
 	
@@ -30,7 +30,9 @@ void * loadFunction(char *func, void ** args) {
 	strcat(filename, ".dll");
 	
 	handle = dlopen(filename, RTLD_LAZY);
+	memset(filename, '\0', filenameLength);
 	free(filename);
+	//filename = NULL;
 	if (!handle) {
 		checkForError(dlerror());
 	}//END IF
