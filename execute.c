@@ -23,7 +23,6 @@
 #include <sys/types.h>
 #include "include/structs.h"
 #include "include/functions.h"
-//#include "include/globalVars.h"
 
 /*
  * http://en.wikipedia.org/wiki/Standard_streams#1970s:_C_and_Unix
@@ -80,7 +79,7 @@ pid_t execute(const char *command, clientStruct s, FILE **in, FILE **out, FILE *
 			buf =	malloc(sizeof(char) * 100);
 			while ((pos = read(fd[2], buf, 100)) > 0) {
 				buf[pos] =	'\0';
-				sendMessage(getSocket(s), buf, strlen(buf));
+				//sendMessage(getSocket(s), buf, strlen(buf));
 				memset(&buf, '\0', sizeof(buf));
 				free(buf);
 				buf =	NULL;

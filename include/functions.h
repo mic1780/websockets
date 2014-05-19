@@ -35,9 +35,10 @@
 //PROTOTYPES
 
 //websocket.c
-void *serverStart();
-void *clientThread(void *s);
+extern void *serverStart();
+extern void *clientThread(void *s);
 extern void *consoleCommand();
+extern void printCommandList();
 
 //alterStruct.c
 extern int getSocket(clientStruct s);

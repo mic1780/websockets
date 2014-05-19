@@ -1,67 +1,26 @@
+/*
+ *
+ *   Copyright (C) 2014  Michael Cummins
+ *   License: GNUv2
+ *   
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 2 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <unistd.h>
 #include <sys/socket.h>
 #include "include/structs.h"
 #include "include/constants.h"
 #include "include/functions.h"
-//#include "include/globalVars.h"
-
-clientStruct * socketArray(int position) {
-	static clientStruct temp[NUM_OF_CLIENTS];
-	static int initialized = 0;
-	
-	if (initialized == 0) {
-		printf("\n\n\t\t **** INITIALIZING temp ****\n\n");
-		initialized++;
-		initializeSockets(temp);
-	}
-	return &temp[position];
-}
-//STRUCT HELPER FUNCTIONS
-
-void initializeSockets(clientStruct * sock) {
-	int i;
-	for (i=0; i < NUM_OF_CLIENTS; i++) {
-		setSocket(&sock[i], 0);
-		setActive(&sock[i], FALSE);
-		sock[i].name = NULL;
-	}//END FOR LOOP
-}//END FUNCTION
-
-/*
-
-int getSocket(clientStruct s) {
-	return s.sock;
-}
-void setSocket(clientStruct * s, int val) {
-	s->sock = val;
-}
-
-int getActive(clientStruct s) {
-	return s.active;
-}
-void setActive(clientStruct * s, int bitFlag) {
-	s->active = bitFlag;
-}
-
-char *getName(clientStruct s) {
-	return s.name;
-}
-void setName(clientStruct * s, char * name) {
-	if (name == NULL && s->name != NULL) {
-		free(s->name);
-		s->name = NULL;
-	} else if (name != NULL) {
-		if (s->name != NULL) {
-			setName(s, NULL);
-		}//END IF
-		s->name =	malloc(sizeof(char) * (strlen(name) + 1));
-		strcpy(s->name, name);
-	}//END IF
-}
-*/
 
 /*
  * alterStruct: this function is used when we want to change a value inside

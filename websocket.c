@@ -17,7 +17,7 @@
 /*
  *	@file: websocket.c
  * @author: Michael Cummins
- * @date: 4/11/2013 12:34PM
+ * @date: 5/19/2014 3:52PM EST
  * @compiler:	GCC
  * @32-bit: YES
  * @description:	This program implements a C version of websockets.
@@ -25,9 +25,9 @@
  *                to server websocket requests from client computers.
  *
  *	Websocket info
- * @supportedVersions:	13
- * @numberOfClients:		Dynamic
- *	@clientsInside:		static array
+ * @supportedVersions:	13 (more later?)
+ * @numberOfClients:		Dynamic (changable in "include/constants.h")
+ *	@clientsInside:		socketArray function (found in libfunctions.c)
  */
 
 //INCLUDES
@@ -73,6 +73,15 @@ int listActiveSockets() {
 	return j;
 }//END FUNCTION
 
+void printCommandList() {
+	printf("\n");
+	printf("\t**** Console Command list ****\n");
+	printf("exit - End this program.\n");
+	printf("help - Displays this command list\n");
+	printf("kill - Lists all active sockets then prompts for which one to close.\n");
+	printf("list - List all active sockets\n");
+}//END FUNCTION
+
 
 //FUNCTIONS
 int main(void) {
@@ -92,7 +101,7 @@ void *consoleCommand() {
 	while (TRUE) {
 		
 		printf("Console is ready for the next command.\n");
-		memset(&cmd, '\0', sizeof(cmd)-1);
+		memset(cmd, '\0', sizeof(cmd)-1);
 		read(STDIN_FILENO, cmd, sizeof(cmd));
 		
 		if (strncmp(cmd, "list", 4) == 0) {
@@ -113,6 +122,9 @@ void *consoleCommand() {
 		} else if (strncmp(cmd, "exit", 4) == 0) {
 			printf("Shutting down server... \n");
 			exit(0);
+		} else {
+			printf("Invalid command.\n");
+			printCommandList();
 		}//END IF
 		printf("\n");
 		
