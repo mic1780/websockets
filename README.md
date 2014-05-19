@@ -21,7 +21,8 @@ Getting Started
 <ol>
 	<li>Download files using clone or extracting the zip</li>
 	<li>Navigate to the directory you extracted the files to using the command line</li>
-	<li>Generate the functions library using the following command: <pre>./generateSO.sh sendMessage doFunction alterStruct execute performAction</pre></li>
-	<li>Create an executable file using: <pre>gcc -rdynamic -o websocket websocket.c -L. -lfunctions</pre></li>
+	<li>Generate the functions library using the following command: <pre>./compileFunctions.sh doFunction alterStruct performAction</pre></li>
+	<li>Generate dynamic libraries using the following command: <pre>./compileLibs.sh sendMessage alterStruct</pre></li>
+	<li>Create an executable file using: <pre>./compileApp.sh websocket</pre></li>
 	<li>Run the newly created websocket program</li>
 </ol>
