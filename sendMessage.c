@@ -64,6 +64,7 @@ void *sendMessage(int sock, char *s, int len) {
 	memcpy(reply, frame, frameCount);
 	memcpy(reply + frameCount, s, len);
 	
+	//printf("sock:\t\"%d\"\ns:\t\"%s\"\nlen:\t\"%d\"\n", sock, s, len);//monitor what goes into the function
 	if (write(sock, reply, strlen(reply)) <= 0) {
 		printf("\n\nWE ARE NOT WRITING!!\n\n");
 	} else {

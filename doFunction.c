@@ -23,6 +23,7 @@
 int checkForError(char *error) {
 	if (error != NULL) {
 		printf("ERROR: %s\n", error);
+		return 1;
 		//exit(EXIT_FAILURE);
 	}//END IF
 	
@@ -46,7 +47,7 @@ void * doFunction(char *func, void ** args) {
 	strcat(filename, ".dll");
 	
 	handle = dlopen(filename, RTLD_LAZY);
-	memset(&filename, '\0', filenameLength);
+	memset(filename, '\0', filenameLength);
 	free(filename);
 	filename = NULL;
 	if (!handle) {
@@ -56,21 +57,21 @@ void * doFunction(char *func, void ** args) {
 	
 	dlerror();
 	
-	typedef void * (*funcType)(int, char *, int);
-	functionPtr = dlsym(handle, func);
-	checkForError(dlerror());
-	funcType sendMessage = (funcType) functionPtr;
-	(sendMessage)((int)args[0], (char *)args[1], (int)args[2]);
-	
 	if (strncmp(func, "sendMessage", strlen(func)) == 0) {
 		typedef void * (*funcType)(int, char *, int);
 		functionPtr = dlsym(handle, func);
-		checkForError(dlerror());
-		funcType sendMessage = (funcType) functionPtr;
-		(sendMessage)((int)args[0], (char *)args[1], (int)args[2]);
-	}// else if (strncmp(func, "alterStruct", strlen(func)) == 0) {
-		//void * (*funcPtr)(int sock, char *action);
-	//} else if (strncmp(func, "execute", strlen(func)) == 0) {
+		if (checkForError(dlerror()) == 0) {
+			funcType sendMessage = (funcType) functionPtr;
+			(sendMessage)((int)args[0], (char *)args[1], (int)args[2]);
+		}//END IF
+	} else if (strncmp(func, "alterStruct", strlen(func)) == 0) {
+		typedef void * (*funcType)(int, char *);
+		functionPtr = dlsym(handle, func);
+		if (checkForError(dlerror()) == 0) {
+			funcType alterStruct = (funcType) functionPtr;
+			(alterStruct)((int)args[0], (char *)args[1]);//error here
+		}//END IF
+	}// else if (strncmp(func, "execute", strlen(func)) == 0) {
 		//void * (*funcPtr)(const char *command, clientStruct s, FILE **in, FILE **out, FILE **err);
 	//} else {
 		//void * (*funcPtr)(int sock, char *s, int len);

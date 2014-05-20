@@ -52,9 +52,9 @@ extern void setName(clientStruct * s, char * name);
 
 extern void *alterStruct(int sock, char *action);
 
-extern void initializeSockets(clientStruct * sock);
+extern void initializeSockets(clientStruct * sock) __attribute__((dllexport));
 
-extern clientStruct * socketArray(int position);
+extern clientStruct * socketArray(int position) __attribute__((unused));
 
 //sendMessage.c
 extern void *sendMessage(int sock, char *s, int len);

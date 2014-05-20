@@ -21,10 +21,13 @@
 #include "include/structs.h"
 #include "include/constants.h"
 
+#ifndef LIBFUNCS__
+#define LIBFUNCS__
 int getSocket(clientStruct s) {
 	return s.sock;
 }
 void setSocket(clientStruct * s, int val) {
+	//printf("we got in here\n");
 	s->sock = val;
 }
 
@@ -72,3 +75,4 @@ clientStruct * socketArray(int position) {
 	return &temp[position];
 }
 //STRUCT HELPER FUNCTIONS
+#endif

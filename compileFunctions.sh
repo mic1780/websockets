@@ -1,3 +1,4 @@
+#!/bin/bash
 # 
 #   Copyright (C) 2014  Michael Cummins
 #   License: GNUv2
@@ -12,10 +13,9 @@
 #   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #   GNU General Public License for more details.
 # 
-#!/bin/bash
 
 for i in $*; do
 	gcc -o objects/$i.o -c -Wall -fPIC $i.c
 done
-gcc -shared -o libfunctions.dll libfunctions.c objects/*.o
+gcc -shared -o libfunctions.dll objects/*.o alterStruct.c libfunctions.c
 echo Finished compiling libfunctions.dll

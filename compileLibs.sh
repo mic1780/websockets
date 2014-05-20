@@ -1,3 +1,4 @@
+#!/bin/bash
 # 
 #   Copyright (C) 2014  Michael Cummins
 #   License: GNUv2
@@ -12,15 +13,22 @@
 #   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #   GNU General Public License for more details.
 # 
-#!/bin/bash
+# HOW I LINKED MAIN PROGRAM TO alterStruct
+#		gcc -c -o objects/libfunctions.o libfunctions.c
+#		gcc -shared -o lib/libfunctions.dll objects/libfunctions.o
+#		gcc -shared -o lib/libalterStruct.dll objects/alterStruct.o lib/libfunctions.dll
 
 mkdir tmp
 for i in $*; do
-	gcc -o tmp/$i.o -c -Wall -fPIC $i.c
+	gcc -o tmp/$i.o -c -Wall $i.c
 	if [ "$i" == "performAction" ]; then
 		gcc -shared -o lib/lib$i.dll tmp/*.o libfunctions.c
 	else
-		gcc -shared -o lib/lib$i.dll libfunctions.c tmp/$i.o
+		if [ "$i" == "libfunctions" ]; then
+			gcc -shared -o lib/$i.dll tmp/$i.o
+		else
+			gcc -shared -o lib/lib$i.dll tmp/$i.o lib/libfunctions.dll
+		fi
 	fi
 done
 rm -r tmp

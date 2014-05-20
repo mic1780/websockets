@@ -1,3 +1,4 @@
+#!/bin/bash
 # 
 #   Copyright (C) 2014  Michael Cummins
 #   License: GNUv2
@@ -12,11 +13,10 @@
 #   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #   GNU General Public License for more details.
 # 
-#!/bin/bash
 
 if [ "$1" == "" ]; then
 	gcc -rdynamic -o websocket websocket.c -L. -lfunctions -ldl
 else
-	gcc -rdynamic -o $1 websocket.c -L. -lfunctions -ldl
+	gcc -rdynamic -o $1 websocket.c libfunctions.c -L. -lfunctions -ldl
 fi
 echo App compiled successfully.

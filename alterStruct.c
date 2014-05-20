@@ -44,6 +44,8 @@
 void *alterStruct(int sock, char *action) {
 	int i = 0;
 	
+	printf("sock: \"%d\"\taction: \"%s\"\n", sock, action);
+	
 	if (strcmp(action, "init") == 0) {
 		for (i=0; i < NUM_OF_CLIENTS; i++) {
 			
@@ -76,18 +78,13 @@ void *alterStruct(int sock, char *action) {
 		close(getSocket(*socketArray(i)));
 		
 		setName(socketArray(i), NULL);
-		//free(temp[i].name);
-		//temp[i].name =	NULL;
 		
 		setActive(socketArray(i), FALSE);
-		//temp[i].active =	FALSE;
 		
 		setSocket(socketArray(i), 0);
-		//temp[i].sock =	0;
 		
 		return NULL;
 	} else if (strncmp(action, "set", 3) == 0) {
-		
 		/* What we can set:
 		 * name
 		 * isAdmin
@@ -101,9 +98,8 @@ void *alterStruct(int sock, char *action) {
 				}//END IF
 			}//END FOR LOOP
 			
+			//printf("\ni: %d\n", i);
 			setName(socketArray(i), action + 9);
-			//temp[i].name =	malloc(sizeof(char) * (strlen(action + 9) + 1));
-			//strcpy(temp[i].name, action + 9);
 			return getName(*socketArray(i));
 		}//END IF
 		
