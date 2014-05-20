@@ -64,6 +64,8 @@ extern pid_t execute(const char *command, clientStruct s, FILE **in, FILE **out,
 
 //performAction.c
 extern void *performAction(char *cmd, clientStruct *s);
+extern void ** createHolder(int sock, char *s, int len);
+extern void destroyHolder(void ** holder);
 
 //dlFunctions.c
 //extern void * loadFunction(char *func, void ** args);

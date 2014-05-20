@@ -15,8 +15,15 @@
 # 
 
 if [ "$1" == "" ]; then
-	gcc -rdynamic -o websocket websocket.c -L. -lfunctions -ldl
+	echo Creating websocket.exe
+	gcc -rdynamic -o websocket websocket.c -L./lib -lfunctions -ldl
 else
-	gcc -rdynamic -o $1 websocket.c libfunctions.c -L. -lfunctions -ldl
+	if [ "$1" == "run" -o "$1" == "run.exe" -o "$1" == "run.sh" ]; then
+		echo ERROR: Do not overwrite the provided run executables.
+		exit
+	else
+		echo Creating $1
+		gcc -rdynamic -o $1 websocket.c -L./lib -lfunctions -ldl
+	fi
 fi
 echo App compiled successfully.

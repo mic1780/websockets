@@ -33,12 +33,15 @@ int checkForError(char *error) {
 void * doFunction(char *func, void ** args) {
 	void *handle;
 	void * functionPtr;
+	void * returnVal;
 	//void * (*alterStruct)(int sock, char *action);
 	
 	int filenameLength;
 	char * filename = NULL;
 	//void *(*funcPtr);
 	
+	printf("test\n");
+	printf("args[1]:\t%s\n", (char *)args[1]);
 	
 	filenameLength = strlen("lib/lib") + strlen(func) + strlen(".dll");
 	filename = malloc(sizeof(char) * (filenameLength + 1));
@@ -62,14 +65,20 @@ void * doFunction(char *func, void ** args) {
 		functionPtr = dlsym(handle, func);
 		if (checkForError(dlerror()) == 0) {
 			funcType sendMessage = (funcType) functionPtr;
-			(sendMessage)((int)args[0], (char *)args[1], (int)args[2]);
+			returnVal = (sendMessage)((int)args[0], (char *)args[1], (int)args[2]);
 		}//END IF
 	} else if (strncmp(func, "alterStruct", strlen(func)) == 0) {
 		typedef void * (*funcType)(int, char *);
 		functionPtr = dlsym(handle, func);
 		if (checkForError(dlerror()) == 0) {
 			funcType alterStruct = (funcType) functionPtr;
-			(alterStruct)((int)args[0], (char *)args[1]);//error here
+			
+			if (strcmp((char *)args[1], "init") == 0 || strcmp((char *)args[1], "close") == 0) {
+				returnVal = (int *)((alterStruct)((int)args[0], (char *)args[1]));
+			} else {
+				returnVal = (char *)((alterStruct)((int)args[0], (char *)args[1]));//error here
+			}//END IF
+			
 		}//END IF
 	}// else if (strncmp(func, "execute", strlen(func)) == 0) {
 		//void * (*funcPtr)(const char *command, clientStruct s, FILE **in, FILE **out, FILE **err);
@@ -79,6 +88,6 @@ void * doFunction(char *func, void ** args) {
 	
 	dlclose(handle);
 	handle = NULL;
-	return NULL;
+	return returnVal;
 	
 }//END loadFunction

@@ -98,6 +98,7 @@ void *consoleCommand() {
 	int activeCount;
 	long x;
 	char cmd[100];
+	void ** holder;
 	while (TRUE) {
 		
 		printf("Console is ready for the next command.\n");
@@ -121,7 +122,10 @@ void *consoleCommand() {
 				} else if (x == -1) {
 					printf("-1 entered. Aborting\n");
 				} else {
-					alterStruct(getSocket(*socketArray(x)), "close");
+					holder = createHolder(getSocket(*socketArray(x)), "close", 0);
+					doFunction("alterStruct", holder);
+					destroyHolder(holder);
+					//alterStruct(getSocket(*socketArray(x)), "close");
 				}//END IF
 			} else {
 				printf("\nNo active sockets to kill\n");
@@ -154,6 +158,7 @@ void *serverStart() {
 	struct sockaddr clientInfo;
 	int clientSocket, clientInfoLen;
 	pthread_t thread1;
+	void ** holder;
 	
 	memset(&serverInfo, 0, sizeof(serverInfo));
 	serverInfo.sin_family = AF_INET;
@@ -168,7 +173,10 @@ void *serverStart() {
 	clientInfoLen =	sizeof(clientInfo);
 	while (TRUE) {
 		clientSocket =	accept(s, &clientInfo, &clientInfoLen);
-		i = (int)alterStruct(clientSocket, "init");
+		holder = createHolder(clientSocket, "init", 0);
+		i = (int)doFunction("alterStruct", holder);
+		destroyHolder(holder);
+		//i = (int)alterStruct(clientSocket, "init");
 		printf("setSocket gave socket #%d a value of %d\n", clientSocket, getSocket(*socketArray(i)));
 		printf("Client %d connected\n", clientSocket);
 		pthread_create(&((socketArray(i))->t), NULL, clientThread, socketArray(i));
@@ -197,6 +205,8 @@ void *clientThread (void *s) {
 	char readBuffer[1024], writeBuffer[1024], masks[4];//the buffers
 	int bytes;//total received bytes.
 	int flag = 0;//header or value: 0 = header, 1 = value
+	
+	void ** holder;//holder for arguments using createHolder
 	
 	printf("New thread created\n");
 	bytes =	read(getSocket(cli), readBuffer, sizeof(readBuffer)-1);
@@ -264,12 +274,15 @@ void *clientThread (void *s) {
 		
 		//If the byteStream was closed or we receive a close byte, confirm close and release connection
 		if (bytes <= 0 || readBuffer[0] == '\x88') {
-			if ((int)alterStruct(getSocket(cli), "close") == -1) {
+			holder = createHolder(getSocket(cli), "close", 0);
+			if ((int)doFunction("alterStruct", holder) == -1) {
+			//if ((int)alterStruct(getSocket(cli), "close") == -1) {
 				printf("\n\n\t\t **** ERROR: CAUGHT CLOSE ATTEMPT OF BAD SOCKET ****\n");
 				printf("\t\t **** IF KILL COMMAND GIVEN FROM CONSOLE IGNORE THIS ****\n\n");
 			} else {
 				printf("Client #%d Closed.\n", getSocket(cli));
 			}//END IF
+			destroyHolder(holder);
 			break;
 		} else if (bytes > 0) {
 			

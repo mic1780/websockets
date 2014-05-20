@@ -15,7 +15,13 @@
 # 
 
 for i in $*; do
-	gcc -o objects/$i.o -c -Wall -fPIC $i.c
+	if [ "$i" == "sendMessage" -o "$i" == "alterStruct" ]; then
+		echo "Do not compile $i here. (Use compileLibs.sh)"
+	else
+		echo "Generating $i.o"
+		gcc -c -Wall -o objects/$i.o $i.c
+	fi
 done
-gcc -shared -o libfunctions.dll objects/*.o alterStruct.c libfunctions.c
+echo Generating libfunctions.dll
+gcc -shared -o lib/libfunctions.dll objects/*.o
 echo Finished compiling libfunctions.dll

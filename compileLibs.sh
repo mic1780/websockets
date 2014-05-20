@@ -20,15 +20,12 @@
 
 mkdir tmp
 for i in $*; do
-	gcc -o tmp/$i.o -c -Wall $i.c
-	if [ "$i" == "performAction" ]; then
-		gcc -shared -o lib/lib$i.dll tmp/*.o libfunctions.c
+	echo "Generating $i.dll"
+	gcc -c -Wall -o tmp/$i.o $i.c
+	if [ "$i" != "sendMessage" -a "$i" != "alterStruct" ]; then
+		echo "Do not compile $i here. (Use compileFunctions.sh)"
 	else
-		if [ "$i" == "libfunctions" ]; then
-			gcc -shared -o lib/$i.dll tmp/$i.o
-		else
-			gcc -shared -o lib/lib$i.dll tmp/$i.o lib/libfunctions.dll
-		fi
+		gcc -shared -o lib/lib$i.dll tmp/$i.o lib/libfunctions.dll
 	fi
 done
 rm -r tmp

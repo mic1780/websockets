@@ -49,7 +49,7 @@ void *performAction(char *cmd, clientStruct *s) {
 		if (strncmp(cmd + 4, "name", 4) == 0) {
 			holder = createHolder(getSocket(*s), cmd, 0);
 			//NOTE: NEED TO FIX s->name somehow.
-			doFunction("alterStruct", holder);
+			s->name = (char *)doFunction("alterStruct", holder);
 			destroyHolder(holder);
 			//s->name =	alterStruct(getSocket(*s), cmd);
 		}//END IF
