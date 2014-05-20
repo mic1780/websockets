@@ -1,0 +1,9 @@
+#dont ignore .gitignore
+!.gitignore
+
+#ignore .exes except run.exe
+/*.exe
+!run.exe
+
+#ignore run.c
+/run.c
