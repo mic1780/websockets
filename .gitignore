@@ -5,5 +5,5 @@
 /*.exe
 !run.exe
 
-#ignore run.c
-/run.c
+#ignore php files (until I delete them)
+/*.php
