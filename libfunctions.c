@@ -75,4 +75,39 @@ clientStruct * socketArray(int position) {
 	return &temp[position];
 }
 //STRUCT HELPER FUNCTIONS
+
+void ** createHolder(int sock, char *s, int len) {
+	void ** holder;
+	holder = malloc(sizeof(void *) * 3);
+	holder[0] = (int *)sock;
+	holder[1] = (char *)s;
+	holder[2] = (int *)len;
+	return holder;
+}
+
+void ** createISIHolder(int sock, char *s, int len) {
+	void ** holder;
+	holder = malloc(sizeof(void *) * 3);
+	holder[0] = (int *)sock;
+	holder[1] = (char *)s;
+	holder[2] = (int *)len;
+	return holder;
+}
+
+void ** createSCSHolder(char *s, clientStruct *cli) {
+	void ** holder;
+	holder = malloc(sizeof(void *) * 2);
+	holder[0] = (char *)s;
+	holder[1] = (clientStruct *)cli;
+	return holder;
+}
+
+void destroyHolder(void ** holder, int len) {
+	int i;
+	for (i=0; i < len; i++) {
+		holder[i] = NULL;
+	}//END FOR LOOP
+	free(holder);
+	holder = NULL;
+}
 #endif

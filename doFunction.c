@@ -40,8 +40,8 @@ void * doFunction(char *func, void ** args) {
 	char * filename = NULL;
 	//void *(*funcPtr);
 	
-	printf("test\n");
-	printf("args[1]:\t%s\n", (char *)args[1]);
+	//printf("test\n");
+	//printf("args[1]:\t%s\n", (char *)args[1]);
 	
 	filenameLength = strlen("lib/lib") + strlen(func) + strlen(".dll");
 	filename = malloc(sizeof(char) * (filenameLength + 1));
@@ -80,9 +80,14 @@ void * doFunction(char *func, void ** args) {
 			}//END IF
 			
 		}//END IF
-	}// else if (strncmp(func, "execute", strlen(func)) == 0) {
-		//void * (*funcPtr)(const char *command, clientStruct s, FILE **in, FILE **out, FILE **err);
-	//} else {
+	} else if (strncmp(func, "performAction", strlen(func)) == 0) {
+		typedef void * (*funcType)(char *, clientStruct *);
+		functionPtr = dlsym(handle, func);
+		if (checkForError(dlerror()) == 0) {
+			funcType performAction = (funcType) functionPtr;
+			returnVal = (performAction)((char *)args[0], (clientStruct *)args[1]);
+		}//END IF
+	}// else {
 		//void * (*funcPtr)(int sock, char *s, int len);
 	//}//END IF
 	

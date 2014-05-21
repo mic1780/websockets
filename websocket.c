@@ -122,9 +122,9 @@ void *consoleCommand() {
 				} else if (x == -1) {
 					printf("-1 entered. Aborting\n");
 				} else {
-					holder = createHolder(getSocket(*socketArray(x)), "close", 0);
+					holder = createISIHolder(getSocket(*socketArray(x)), "close", 0);
 					doFunction("alterStruct", holder);
-					destroyHolder(holder);
+					destroyHolder(holder, 3);
 					//alterStruct(getSocket(*socketArray(x)), "close");
 				}//END IF
 			} else {
@@ -173,9 +173,9 @@ void *serverStart() {
 	clientInfoLen =	sizeof(clientInfo);
 	while (TRUE) {
 		clientSocket =	accept(s, &clientInfo, &clientInfoLen);
-		holder = createHolder(clientSocket, "init", 0);
+		holder = createISIHolder(clientSocket, "init", 0);
 		i = (int)doFunction("alterStruct", holder);
-		destroyHolder(holder);
+		destroyHolder(holder, 3);
 		//i = (int)alterStruct(clientSocket, "init");
 		printf("setSocket gave socket #%d a value of %d\n", clientSocket, getSocket(*socketArray(i)));
 		printf("Client %d connected\n", clientSocket);
@@ -206,7 +206,7 @@ void *clientThread (void *s) {
 	int bytes;//total received bytes.
 	int flag = 0;//header or value: 0 = header, 1 = value
 	
-	void ** holder;//holder for arguments using createHolder
+	void ** holder;//holder for arguments using createHolder functions
 	
 	printf("New thread created\n");
 	bytes =	read(getSocket(cli), readBuffer, sizeof(readBuffer)-1);
@@ -274,7 +274,7 @@ void *clientThread (void *s) {
 		
 		//If the byteStream was closed or we receive a close byte, confirm close and release connection
 		if (bytes <= 0 || readBuffer[0] == '\x88') {
-			holder = createHolder(getSocket(cli), "close", 0);
+			holder = createISIHolder(getSocket(cli), "close", 0);
 			if ((int)doFunction("alterStruct", holder) == -1) {
 			//if ((int)alterStruct(getSocket(cli), "close") == -1) {
 				printf("\n\n\t\t **** ERROR: CAUGHT CLOSE ATTEMPT OF BAD SOCKET ****\n");
@@ -282,7 +282,7 @@ void *clientThread (void *s) {
 			} else {
 				printf("Client #%d Closed.\n", getSocket(cli));
 			}//END IF
-			destroyHolder(holder);
+			destroyHolder(holder, 3);
 			break;
 		} else if (bytes > 0) {
 			
@@ -313,7 +313,9 @@ void *clientThread (void *s) {
 			printf("Message from socket #%d: \"%s\"\n", getSocket(cli), writeBuffer);
 			
 			//send the decoded message to the performAction function
-			performAction(writeBuffer, &cli);
+			holder = createSCSHolder(writeBuffer, &cli);
+			doFunction("performAction", holder);//this is where the magic happens
+			destroyHolder(holder, 2);
 			
 			//reset buffer to NULL bytes
 			memset(&writeBuffer, '\0', sizeof(writeBuffer));

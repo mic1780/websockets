@@ -44,7 +44,7 @@
 void *alterStruct(int sock, char *action) {
 	int i = 0;
 	
-	printf("sock: \"%d\"\taction: \"%s\"\n", sock, action);
+	//printf("sock: \"%d\"\taction: \"%s\"\n", sock, action);
 	
 	if (strcmp(action, "init") == 0) {
 		for (i=0; i < NUM_OF_CLIENTS; i++) {

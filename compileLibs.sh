@@ -22,7 +22,7 @@ mkdir tmp
 for i in $*; do
 	echo "Generating $i.dll"
 	gcc -c -Wall -o tmp/$i.o $i.c
-	if [ "$i" != "sendMessage" -a "$i" != "alterStruct" ]; then
+	if [ "$i" != "sendMessage" -a "$i" != "alterStruct" -a "$i" != "performAction" ]; then
 		echo "Do not compile $i here. (Use compileFunctions.sh)"
 	else
 		gcc -shared -o lib/lib$i.dll tmp/$i.o lib/libfunctions.dll
