@@ -25,10 +25,10 @@ Getting Started
 		All files need the libfunctions.dll so we need to generate it first:
 			<pre>./compileFunctions.sh libfunctions</pre>
 		Or generate it with static functions at the same time:
-			<pre>./compileFunctions.sh libfunctions doFunction performAction</pre>
+			<pre>./compileFunctions.sh libfunctions doFunction</pre>
 	</li>
-	<li>If you only generated the libfunctions, you need also need to run the following command: <pre>./compileFunctions.sh doFunction performAction</pre></li>
-	<li>Generate dynamic libraries using the following command: <pre>./compileLibs.sh sendMessage alterStruct</pre></li>
+	<li>If you only generated the libfunctions, you need also need to run the following command: <pre>./compileFunctions.sh doFunction</pre></li>
+	<li>Generate dynamic libraries using the following command: <pre>./compileLibs.sh sendMessage alterStruct performAction</pre></li>
 	<li>Create an executable file using: <pre>./compileApp.sh</pre></li>
 </ol>
 

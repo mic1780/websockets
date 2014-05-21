@@ -15,7 +15,7 @@
 # 
 
 for i in $*; do
-	if [ "$i" == "sendMessage" -o "$i" == "alterStruct" ]; then
+	if [ "$i" == "sendMessage" -o "$i" == "alterStruct" -o "$i" == "performAction" ]; then
 		echo "Do not compile $i here. (Use compileLibs.sh)"
 	else
 		echo "Generating $i.o"
