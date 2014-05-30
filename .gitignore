@@ -1,9 +1,13 @@
 #dont ignore .gitignore
 !.gitignore
 
-#ignore .exes except run.exe
+#ignore executables
 /*.exe
-!run.exe
+/*.out
 
 #ignore php files (until I delete them)
 /*.php
+
+#ignore run.* except for the C file
+run.*
+!run.c
