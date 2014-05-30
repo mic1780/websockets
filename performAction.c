@@ -87,6 +87,7 @@ void *performAction(char *cmd, clientStruct *s) {
 int isFullCommand(char * sent) {
 	if (
 		myStrncmp(sent, "test") == 0 ||
+		myStrncmp(sent, "sql ") == 0 ||
 		myStrncmp(sent, "sendall ") == 0 ||
 		myStrncmp(sent, "set name ") == 0
 	)

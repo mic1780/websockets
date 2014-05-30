@@ -22,6 +22,13 @@ for i in $*; do
 		gcc -c -Wall -o objects/$i.o $i.c
 	fi
 done
-echo Generating libfunctions.dll
-gcc -shared -o lib/libfunctions.dll objects/*.o
-echo Finished compiling libfunctions.dll
+
+if [ "$OS" == "Windows_NT" ]; then
+	echo "Generating libfunctions.dll"
+	gcc -shared -o lib/libfunctions.dll objects/*.o
+else
+	echo "Generating libfunctions.so"
+	gcc -shared -o so/libfunctions.so objects/*.o
+fi
+
+echo "Finished"

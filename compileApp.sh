@@ -14,16 +14,27 @@
 #   GNU General Public License for more details.
 # 
 
-if [ "$1" == "" ]; then
-	echo Creating websocket.exe
-	gcc -rdynamic -o websocket websocket.c -L./lib -lfunctions -ldl
-else
-	if [ "$1" == "run" -o "$1" == "run.exe" -o "$1" == "run.sh" ]; then
-		echo ERROR: Do not overwrite the provided run executables.
-		exit
+if [ "$1" == "run" -o "$1" == "run.exe" -o "$1" == "run.sh" ]; then
+	echo ERROR: Do not overwrite the provided run executables.
+	exit
+fi
+
+if [ "$OS" == "Windows_NT" ]; then
+	if [ "$1" == "" ]; then
+		echo "Creating websocket.exe"
+		gcc -rdynamic -o websocket websocket.c -L./lib -lfunctions -ldl -lpthread
 	else
-		echo Creating $1
-		gcc -rdynamic -o $1 websocket.c -L./lib -lfunctions -ldl
+		echo "Creating $1"
+		gcc -rdynamic -o $1 websocket.c -L./lib -lfunctions -ldl -lpthread
+	fi
+else
+	if [ "$1" == "" ]; then
+		echo "Creating websocket application"
+		gcc -rdynamic -o websocket websocket.c -L./so -lfunctions -ldl -lpthread
+	else
+		echo "Creating $1"
+		gcc -rdynamic -o $1 websocket.c -L./so -lfunctions -ldl -lpthread
 	fi
 fi
-echo App compiled successfully.
+
+echo "App compiled successfully."

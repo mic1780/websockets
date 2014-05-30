@@ -18,15 +18,25 @@
 #		gcc -shared -o lib/libfunctions.dll objects/libfunctions.o
 #		gcc -shared -o lib/libalterStruct.dll objects/alterStruct.o lib/libfunctions.dll
 
+echo "Creating tmp directory"
 mkdir tmp
+
 for i in $*; do
-	echo "Generating $i.dll"
+	echo "Generating $i.o"
 	gcc -c -Wall -o tmp/$i.o $i.c
 	if [ "$i" != "sendMessage" -a "$i" != "alterStruct" -a "$i" != "performAction" ]; then
 		echo "Do not compile $i here. (Use compileFunctions.sh)"
 	else
-		gcc -shared -o lib/lib$i.dll tmp/$i.o lib/libfunctions.dll
+		if [ "$OS" == "Windows_NT" ]; then
+			echo "Generating $i.dll"
+			gcc -shared -o lib/lib$i.dll tmp/$i.o lib/libfunctions.dll
+		else
+			echo "Generating $i.so"
+			gcc -shared -o so/lib$i.so tmp/$i.o so/libfunctions.so
+		fi
 	fi
 done
+
+echo "Cleaning up..."
 rm -r tmp
-echo Finished compiling libraries.
+echo "Finished"
