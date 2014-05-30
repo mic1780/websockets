@@ -52,9 +52,9 @@ extern void setName(clientStruct * s, char * name);
 
 extern void *alterStruct(int sock, char *action);
 
-extern void initializeSockets(clientStruct * sock) __attribute__((dllexport));
+extern void initializeSockets(clientStruct * sock);
 
-extern clientStruct * socketArray(int position) __attribute__((unused));
+extern clientStruct * socketArray(int position);// __attribute__((unused));
 
 //sendMessage.c
 extern void *sendMessage(int sock, char *s, int len);
@@ -70,7 +70,6 @@ extern void ** createSCSHolder(char *s, clientStruct *cli);//string clientStruct
 extern void destroyHolder(void ** holder, int len);
 
 //dlFunctions.c
-//extern void * loadFunction(char *func, void ** args);
 extern void * doFunction(char *func, void ** args);
 
 #endif /* WEBSOCK_C */
