@@ -22,6 +22,11 @@ Getting Started
 	<li>Download files using clone or extracting the zip</li>
 	<li>Navigate to the directory you extracted the files to using the command line</li>
 	<li>
+		You can run the following command to compile everything for you.
+			<pre>./build.sh</pre>
+		If you did not run build.sh then continue to the next step.
+	</li>
+	<li>
 		All files need the libfunctions.dll so we need to generate it first:
 			<pre>./compileFunctions.sh libfunctions</pre>
 		Or generate it with static functions at the same time:
