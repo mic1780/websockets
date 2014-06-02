@@ -22,19 +22,19 @@ fi
 if [ "$OS" == "Windows_NT" ]; then
 	if [ "$1" == "" ]; then
 		echo "Creating websocket.exe"
-		gcc -rdynamic -o websocket websocket.c -L./lib -lfunctions -ldl -lpthread
+		gcc -rdynamic -o bin/websocket websocket.c -L./lib -lfunctions -ldl -lpthread
 	else
 		echo "Creating $1"
-		gcc -rdynamic -o $1 websocket.c -L./lib -lfunctions -ldl -lpthread
+		gcc -rdynamic -o bin/$1 websocket.c -L./lib -lfunctions -ldl -lpthread
 	fi
 	gcc -o run.exe run.c
 else
 	if [ "$1" == "" ]; then
 		echo "Creating websocket.out"
-		gcc -rdynamic -o websocket.out websocket.c -L./so -lfunctions -ldl -lpthread
+		gcc -rdynamic -o bin/websocket.out websocket.c -L./so -lfunctions -ldl -lpthread
 	else
 		echo "Creating $1"
-		gcc -rdynamic -o $1 websocket.c -L./so -lfunctions -ldl -lpthread
+		gcc -rdynamic -o bin/$1 websocket.c -L./so -lfunctions -ldl -lpthread
 	fi
 	gcc -o run.sh run.c
 fi

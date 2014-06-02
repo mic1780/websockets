@@ -28,13 +28,13 @@ void testPrint(int line, const char *func) {
 int main(int argc, char ** argv) {
 	char * str;//max filename length = 256 + 3 for ./ and + 1 for \0 on end
 	
-	/*
+	/**
 	int i;
 	printf("ARGUMENTS LIST:\n");
 	for (i=0; i < argc; i++) {
 		printf("arg[%d]:\t\"%s\"\n", i, argv[i]);
 	}//END FOR LOOP
-	//return 0;
+	return 0;
 	/**/
 	
 	if (argc == 2) {
@@ -44,8 +44,8 @@ int main(int argc, char ** argv) {
 			strcat(str, argv[1]);
 			system(str);
 		} else {
-			str = malloc(sizeof(char) * ( strlen("cmd /C \"set PATH=%PATH%;%cd%\\lib&&\"") + strlen(argv[1]) + 1 ));
-			strcpy(str, "cmd /C \"set PATH=%PATH%;%cd%\\lib&&");
+			str = malloc(sizeof(char) * ( strlen("cmd /C \"set PATH=%PATH%;%cd%\\lib&&bin\\\"") + strlen(argv[1]) + 1 ));
+			strcpy(str, "cmd /C \"set PATH=%PATH%;%cd%\\lib&&bin\\");
 			strcat(str, argv[1]);
 			strcat(str, "\"");
 			system(str);
@@ -58,13 +58,14 @@ int main(int argc, char ** argv) {
 			strcpy(str, "./setupEnv.sh run websocket");
 			system(str);
 		} else {
-			str = malloc(sizeof(char) * ( strlen("cmd /C \"set PATH=%PATH%;%cd%\\lib&&websocket\"") + 1 ));
-			strcpy(str, "cmd /C \"set PATH=%PATH%;%cd%\\lib&&websocket\"");
+			str = malloc(sizeof(char) * ( strlen("cmd /C \"set PATH=%PATH%;%cd%\\lib&&bin\\websocket\"") + 1 ));
+			strcpy(str, "cmd /C \"set PATH=%PATH%;%cd%\\lib&&bin\\websocket\"");
 			system(str);
 		}//END IF
 		free(str);
 		return 0;
 	}//END IF
+	
 	
 	return 1;
 }//END MAIN
