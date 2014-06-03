@@ -32,4 +32,12 @@
 #define IP_OCTET_4 1
 #define CONNECTION_PORT 1780
 
+
+//#if defined(_X86_) || defined(__x86_64__)
+#if defined(_X86_) || defined(__x86_64__)
+#define __ISWINDOWS__ 1
+#else
+#define __ISWINDOWS__ 0
+#endif
+
 #endif

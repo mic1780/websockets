@@ -22,7 +22,7 @@ usage: $0 options
 This script is used when you execute a run executable
 
 OPTIONS:
-   -h                               Displays this help
+   -h, --help                       Displays this help
    -b                               Create a new application (compile with default commands)
    -d                               Delete executables and libraries
    -a [ <name> ]                    Compile main application
@@ -32,22 +32,29 @@ OPTIONS:
 EOF
 }
 
+function contains()
+{
+	local haystack=$1
+	local neddle=$2
+	for i in $haystack; do
+		if [ "$i" == "$neddle" ]; then
+			echo "1"
+			return 1
+		fi
+	done
+	
+	echo "0"
+	return 0
+}
+
+DEFAULT_FUNCTION_NAMES=("libfunctions")
+DEFAULT_LIB_NAMES=("sendMessage" "alterStruct" "performAction" "callFunction")
+
 while true; do
 	case $1 in
 		-h|--help)
 			usage
 			exit 1
-			;;
-		-b)
-			NEW_BUILD=1
-			shift
-			COMPILE_FUNCTION=1
-			COMPILE_LIB=1
-			COMPILE_APP=1
-			;;
-		-d)
-			DELETE_FILES=1
-			shift
 			;;
 		-a)
 			COMPILE_APP=1
@@ -61,6 +68,18 @@ while true; do
 				COMPILE_APP_NAME="$1"
 				shift
 			fi
+			;;
+		-b)
+			NEW_BUILD=1
+			shift
+			DELETE_FILES=1
+			COMPILE_FUNCTION=1
+			COMPILE_LIB=1
+			COMPILE_APP=1
+			;;
+		-d)
+			DELETE_FILES=1
+			shift
 			;;
 		-f)
 			COMPILE_FUNCTION=1
@@ -113,8 +132,20 @@ while true; do
 	esac
 done
 
-if [ "$DELETE_FILES" == "1" -a "$NEW_BUILD" == "" ]; then
-	echo "Deleting compiled libraries and executables"
+#new build
+if [ "$NEW_BUILD" == "1" ]; then
+	echo "Beginning full compile"
+	echo ""
+fi
+
+#delete files
+if [ "$DELETE_FILES" == "1" ]; then
+	
+	if [ "$NEW_BUILD" == "1" ]; then
+		echo "Removing old files"
+	else
+		echo "Deleting compiled libraries and executables"
+	fi
 	
 	if [ "$OS" == "Windows_NT" ]; then
 		rm -rf lib/*.dll
@@ -130,29 +161,13 @@ if [ "$DELETE_FILES" == "1" -a "$NEW_BUILD" == "" ]; then
 	rm -rf ./tmp
 fi
 
-#new build
-if [ "$NEW_BUILD" == "1" ]; then
-	echo "Beginning full compile"
-	echo ""
-	
-	echo "Removing old files"
-	rm -rf lib/*.dll
-	rm -rf objects/*.o
-	rm -rf so/*.so
-	rm -rf ./tmp
-	rm -f ./*.exe
-	rm -f ./*.out
-	rm -f ./run.sh
-	
-fi
-
 
 if [ "$COMPILE_FUNCTION" == "1" -a "${#COMPILE_FUNCTION_NAMES[@]}" == "0" ]; then
-	COMPILE_FUNCTION_NAMES=("libfunctions")
+	COMPILE_FUNCTION_NAMES=${DEFAULT_FUNCTION_NAMES[@]}
 fi
 
 if [ "$COMPILE_LIB" == "1" -a "${#COMPILE_LIB_NAMES[@]}" == "0" ]; then
-	COMPILE_LIB_NAMES=("sendMessage" "alterStruct" "performAction" "callFunction")
+	COMPILE_LIB_NAMES=${DEFAULT_LIB_NAMES[@]}
 fi
 
 
@@ -160,8 +175,8 @@ fi
 if [ "$COMPILE_FUNCTION" == "1" ]; then
 	
 	for i in ${COMPILE_FUNCTION_NAMES[@]}; do
-		if [ "$i" == "sendMessage" -o "$i" == "alterStruct" -o "$i" == "performAction" ]; then
-			echo "Do not compile $i here. (Use compileLibs.sh)"
+		if [ $(contains "`echo ${DEFAULT_LIB_NAMES[@]}`" "$i") == "1" ]; then
+			echo "Do not compile $i here. (Use ./compile.sh -l $i)"
 		else
 			echo "Generating $i.o"
 			gcc -c -o objects/$i.o $i.c
@@ -190,8 +205,8 @@ if [ "$COMPILE_LIB" == "1" ]; then
 	for i in ${COMPILE_LIB_NAMES[@]}; do
 		echo "Generating $i.o"
 		gcc -c -o tmp/$i.o $i.c
-		if [ "$i" != "sendMessage" -a "$i" != "alterStruct" -a "$i" != "performAction" -a "$i" != "callFunction" ]; then
-			echo "Do not compile $i here. (Use compileFunctions.sh)"
+		if [ $(contains "`echo ${DEFAULT_FUNCTION_NAMES[@]}`" "$i") == "1" ]; then
+			echo "Do not compile $i here. (Use ./compile.sh -f $i)"
 		else
 			if [ "$OS" == "Windows_NT" ]; then
 				echo "Generating $i.dll"
@@ -212,10 +227,10 @@ fi
 #compile main application
 if [ "$COMPILE_APP" == "1" ]; then
 	
-	if [ "$COMPILE_APP_NAME" == "run" -o "$COMPILE_APP_NAME" == "run.exe" -o "$COMPILE_APP_NAME" == "run.sh" ]; then
-		echo "ERROR: Do not overwrite the provided run executables."
-		exit
-	fi
+#	if [ "$COMPILE_APP_NAME" == "run" -o "$COMPILE_APP_NAME" == "run.exe" -o "$COMPILE_APP_NAME" == "run.out" ]; then
+#		echo "ERROR: Do not overwrite run executable."
+#		exit
+#	fi
 	
 	if [ "$OS" == "Windows_NT" ]; then
 		if [ "$COMPILE_APP_NAME" == "" ]; then

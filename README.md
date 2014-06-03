@@ -78,14 +78,14 @@ On windows you can do one of the following to start your websocket server (for w
 <ul>
 	<li>double-click run.exe</li>
 	<li>Open a Command Prompt (Shift + Right Click in windows explorer and "Open command window here") and enter the following:<pre>run.exe</pre></li>
-	<li>If you use a linux shell (for example: Cygwin), you can enter the following command in it:<pre>./compile.sh -r</pre></li>
+	<li>If you use a linux shell (for example: Cygwin), you can enter the following command in it:<pre>./run.exe</pre></li>
 </ul>
 
 **Linux / Unix**
 
 <ul>
-	<li>Using the command-line, change directories to where you created the websocket server then<pre>./compile.sh -r</pre></li>
-	<li>If you have a file explorer, navigate to folder where you created the websocket server then open run.out (not working)</li>
+	<li>Using the command-line, change directories to where you created the websocket server then<pre>./run.out</pre></li>
+	<li>If you have a file explorer, navigate to folder where you created the websocket server then open run.out (untested)</li>
 </ul>
 
 Questions?
