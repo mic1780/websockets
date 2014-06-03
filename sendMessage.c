@@ -69,8 +69,10 @@ void *sendMessage(int sock, char *s, int len) {
 		printf("\n\nWE ARE NOT WRITING!!\n\n");
 	} else {
 		//printf("we did write\n");
+		//printf("This is what we write:\n\"%s\"\n", reply);
 	}//END IF
 	
+	memset(reply, '\0', sizeof(char) * (len + 8));
 	free(reply);
 	reply = NULL;
 	
