@@ -87,7 +87,8 @@ void printCommandList() {
 int main(void) {
 	int x = 0;
 	char cmd[1024];
-	strcpy(ipAddress, "127.0.0.1");//<------ENTER YOUR INTERNAL IP HERE
+	sprintf(ipAddress, "%d.%d.%d.%d", IP_OCTET_1, IP_OCTET_2, IP_OCTET_3, IP_OCTET_4);
+	//strcpy(ipAddress, "127.0.0.1");//<------ENTER YOUR INTERNAL IP HERE
 	pthread_t serverThread;
 	pthread_create(&serverThread, NULL, consoleCommand, NULL);
 	serverStart();
@@ -163,7 +164,7 @@ void *serverStart() {
 	memset(&serverInfo, 0, sizeof(serverInfo));
 	serverInfo.sin_family = AF_INET;
 	serverInfo.sin_addr.s_addr =	inet_addr(ipAddress);
-	serverInfo.sin_port =	htons(81);
+	serverInfo.sin_port =	htons(CONNECTION_PORT);
 	
 	s =	socket(AF_INET, SOCK_STREAM, 0);
 	rc =	bind(s, (struct sockaddr *) &serverInfo, sizeof(serverInfo));

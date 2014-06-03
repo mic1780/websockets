@@ -18,43 +18,74 @@ In the meantime feel free to use and alter this project however you see fit.
 
 Getting Started
 ===============
+<h1>Simple setup (using compile defaults)</h1>
+<ol>
+	<li>Download files using clone or extracting the zip</li>
+	<li>Navigate to the directory you extracted the files to using the command line</li>
+	<li>
+		To build the application (assuming nothing has been compiled yet) simply run the following command:
+			<pre>./compile.sh -b</pre>
+	</li>
+		To run your newly created server run the following command:
+			<pre>./compile.sh -r</pre>
+	</li>
+	<li>If you want to see the list of available console commands for the server type in "help" after the server has started.</li>
+	<li>Enjoy your new websocket server</li>
+</ol>
+
+<h1>Advanced Setup</h1>
 <ol>
 	<li>Download files using clone or extracting the zip</li>
 	<li>Navigate to the directory you extracted the files to using the command line</li>
 	<li>
 		You can run the following command to compile everything for you.
-			<pre>./build.sh</pre>
-		If you did not run build.sh then continue to the next step.
+			<pre>./compile.sh -b</pre>
+		If you did not run the above command then continue to the next step.
 	</li>
 	<li>
-		All files need the libfunctions.dll so we need to generate it first:
-			<pre>./compileFunctions.sh libfunctions</pre>
-		Or generate it with static functions at the same time:
-			<pre>./compileFunctions.sh libfunctions doFunction</pre>
+		All files need the libfunctions library so we need to generate it first:
+			<pre>./compile.sh -f</pre>
+		Or if you have your own global functions in seperate files you can generate them with libfunctions at the same time:
+			<pre>./compile.sh -f libfunctions [your global function files]</pre>
 	</li>
-	<li>If you only generated the libfunctions, you need also need to run the following command: <pre>./compileFunctions.sh doFunction</pre></li>
-	<li>Generate dynamic libraries using the following command: <pre>./compileLibs.sh sendMessage alterStruct performAction</pre></li>
-	<li>Create an executable file using: <pre>./compileApp.sh</pre></li>
+	<li>
+		Once you have generated your libfunctions library, next you will need to generate your dynamic function libraries:
+			<pre>./compile.sh -l</pre>
+		This will compile the default dynamic libraries. This commands is the same as doing the following:
+			<pre>./compile.sh -l sendMessage alterStruct performAction callFunction</pre>
+	</li>
+	<li>
+		Finally, you need to actually create the main executable. This can be done using the following command:
+			<pre>./compile.sh -a</pre>
+		This gives the compiled application the default name websocket.exe on Windows or websocket.out on UNIX.
+	</li>
+	<li>
+		Now you can run your new application:
+			<pre>./compile.sh -r</pre>
+		This will run your server application using this default name websocket.exe on Windows or websocket.out on UNIX
+	</li>
+	<li>Enjoy your new websocket server</li>
 </ol>
+
+If you want to know what compile.sh does you can run it with the -h flag to bring up help
 
 How do I use it?
 ================
 
 **Windows:**
 
-On windows you can do one of the following to start your websocket server:
+On windows you can do one of the following to start your websocket server (for websocket.exe only):
 <ul>
 	<li>double-click run.exe</li>
 	<li>Open a Command Prompt (Shift + Right Click in windows explorer and "Open command window here") and enter the following:<pre>run.exe</pre></li>
-	<li>If you use a linux shell (for example: Cygwin), you can enter the following command in it:<pre>./run.exe</pre></li>
+	<li>If you use a linux shell (for example: Cygwin), you can enter the following command in it:<pre>./compile.sh -r</pre></li>
 </ul>
 
 **Linux / Unix**
 
-I have never used a Linux / Unix operating system so I am not sure you they have a file explorer but I'll include that method just in case
 <ul>
-	<li>Using the command-line, change directories to where you created the websocket server then<pre>./run.sh</pre></li>
-	<li>If you have a file explorer, navigate to folder where you created the websocket server then open run.sh</li>
+	<li>Using the command-line, change directories to where you created the websocket server then<pre>./compile.sh -r</pre></li>
+	<li>If you have a file explorer, navigate to folder where you created the websocket server then open run.out (not working)</li>
 </ul>
 
 Questions?

@@ -70,6 +70,9 @@ extern void ** createSCSHolder(char *s, clientStruct *cli);//string clientStruct
 extern void destroyHolder(void ** holder, int len);
 
 //dlFunctions.c
-extern void * doFunction(char *func, void ** args);
+extern void * doFunction(char *fName, void ** argv);
+
+//callFunction.c
+extern void * callFunction(char * fName, void ** argv, int isWindows);
 
 #endif /* WEBSOCK_C */

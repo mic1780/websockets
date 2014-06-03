@@ -19,6 +19,7 @@
 #include <string.h>
 #include <dlfcn.h>
 #include "include/functions.h"
+#include "include/constants.h"
 
 int checkForError(char *error) {
 	if (error != NULL) {
@@ -30,24 +31,40 @@ int checkForError(char *error) {
 	return 0;
 }//END IF
 
-void * doFunction(char *func, void ** args) {
+void * callFunction(char *fName, void ** argv, int isWindows) {
 	void *handle;
 	void * functionPtr;
 	void * returnVal;
-	//void * (*alterStruct)(int sock, char *action);
 	
 	int filenameLength;
 	char * filename = NULL;
-	//void *(*funcPtr);
 	
-	//printf("test\n");
-	//printf("args[1]:\t%s\n", (char *)args[1]);
+	if (isWindows == TRUE) {
+		filenameLength = strlen("lib/lib") + strlen(fName) + strlen(".dll");
+	} else if (isWindows == FALSE) {
+		filenameLength = strlen("so/lib") + strlen(fName) + strlen(".so");
+	} else {
+		printf("ERROR: We do not know if this is a windows system or not!\nThis could occur if you do not use doFunction to call callFunction.\nNo function was called.\nReturning...\n");
+		return NULL;
+	}//END IF
 	
-	filenameLength = strlen("lib/lib") + strlen(func) + strlen(".dll");
 	filename = malloc(sizeof(char) * (filenameLength + 1));
-	strcpy(filename, "lib/lib");
-	strcat(filename, func);
-	strcat(filename, ".dll");
+	
+	if (isWindows == TRUE) {
+		strcpy(filename, "lib/lib");
+		strcat(filename, fName);
+		strcat(filename, ".dll");
+	} else if (isWindows == FALSE) {
+		strcpy(filename, "so/lib");
+		strcat(filename, fName);
+		strcat(filename, ".so");
+	} else {
+		//somehow they got around the first statement, clearly we need to stop them again
+		memset(filename, '\0', filenameLength);
+		free(filename);
+		filename = NULL;
+		return NULL;
+	}//END IF
 	
 	handle = dlopen(filename, RTLD_LAZY);
 	memset(filename, '\0', filenameLength);
@@ -60,32 +77,32 @@ void * doFunction(char *func, void ** args) {
 	
 	dlerror();
 	
-	if (strncmp(func, "sendMessage", strlen(func)) == 0) {
+	if (strncmp(fName, "sendMessage", strlen(fName)) == 0) {
 		typedef void * (*funcType)(int, char *, int);
-		functionPtr = dlsym(handle, func);
+		functionPtr = dlsym(handle, fName);
 		if (checkForError(dlerror()) == 0) {
 			funcType sendMessage = (funcType) functionPtr;
-			returnVal = (sendMessage)((int)args[0], (char *)args[1], (int)args[2]);
+			returnVal = (sendMessage)((int)argv[0], (char *)argv[1], (int)argv[2]);
 		}//END IF
-	} else if (strncmp(func, "alterStruct", strlen(func)) == 0) {
+	} else if (strncmp(fName, "alterStruct", strlen(fName)) == 0) {
 		typedef void * (*funcType)(int, char *);
-		functionPtr = dlsym(handle, func);
+		functionPtr = dlsym(handle, fName);
 		if (checkForError(dlerror()) == 0) {
 			funcType alterStruct = (funcType) functionPtr;
 			
-			if (strcmp((char *)args[1], "init") == 0 || strcmp((char *)args[1], "close") == 0) {
-				returnVal = (int *)((alterStruct)((int)args[0], (char *)args[1]));
+			if (strcmp((char *)argv[1], "init") == 0 || strcmp((char *)argv[1], "close") == 0) {
+				returnVal = (int *)((alterStruct)((int)argv[0], (char *)argv[1]));
 			} else {
-				returnVal = (char *)((alterStruct)((int)args[0], (char *)args[1]));//error here
+				returnVal = (char *)((alterStruct)((int)argv[0], (char *)argv[1]));//error here
 			}//END IF
 			
 		}//END IF
-	} else if (strncmp(func, "performAction", strlen(func)) == 0) {
+	} else if (strncmp(fName, "performAction", strlen(fName)) == 0) {
 		typedef void * (*funcType)(char *, clientStruct *);
-		functionPtr = dlsym(handle, func);
+		functionPtr = dlsym(handle, fName);
 		if (checkForError(dlerror()) == 0) {
 			funcType performAction = (funcType) functionPtr;
-			returnVal = (performAction)((char *)args[0], (clientStruct *)args[1]);
+			returnVal = (performAction)((char *)argv[0], (clientStruct *)argv[1]);
 		}//END IF
 	}// else {
 		//void * (*funcPtr)(int sock, char *s, int len);

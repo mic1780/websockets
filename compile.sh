@@ -23,10 +23,11 @@ This script is used when you execute a run executable
 
 OPTIONS:
    -h                               Displays this help
-   -b [ <name> ]                    Compile main application
+   -b                               Create a new application (compile with default commands)
+   -d                               Delete executables and libraries
+   -a [ <name> ]                    Compile main application
    -f [ file1 [ file2 ... ] ]       Compile functions
    -l [ file1 [ file2 ... ] ]       Compile dynamic libraries
-   -n                               Compile all files (new build)
    -r [ <name> ]                    Runs the specified program after setup
 EOF
 }
@@ -38,6 +39,17 @@ while true; do
 			exit 1
 			;;
 		-b)
+			NEW_BUILD=1
+			shift
+			COMPILE_FUNCTION=1
+			COMPILE_LIB=1
+			COMPILE_APP=1
+			;;
+		-d)
+			DELETE_FILES=1
+			shift
+			;;
+		-a)
 			COMPILE_APP=1
 			COMPILE_APP_NAME=
 			shift
@@ -91,13 +103,6 @@ while true; do
 				shift
 			fi
 			;;
-		-n)
-			NEW_BUILD=1
-			shift
-			COMPILE_FUNCTION=1
-			COMPILE_LIB=1
-			COMPILE_APP=1
-			;;
 		-*)
 			echo "$0: Invalid option $1" >&2
 			exit 2
@@ -107,6 +112,23 @@ while true; do
 			;;
 	esac
 done
+
+if [ "$DELETE_FILES" == "1" -a "$NEW_BUILD" == "" ]; then
+	echo "Deleting compiled libraries and executables"
+	
+	if [ "$OS" == "Windows_NT" ]; then
+		rm -rf lib/*.dll
+		rm -rf bin/*.exe
+		rm -f ./*.exe
+	else
+		rm -rf so/*.so
+		rm -rf bin/*.out
+		rm -f ./*.out
+	fi
+	
+	rm -rf objects/*.o
+	rm -rf ./tmp
+fi
 
 #new build
 if [ "$NEW_BUILD" == "1" ]; then
@@ -126,11 +148,11 @@ fi
 
 
 if [ "$COMPILE_FUNCTION" == "1" -a "${#COMPILE_FUNCTION_NAMES[@]}" == "0" ]; then
-	COMPILE_FUNCTION_NAMES=("libfunctions" "doFunction")
+	COMPILE_FUNCTION_NAMES=("libfunctions")
 fi
 
 if [ "$COMPILE_LIB" == "1" -a "${#COMPILE_LIB_NAMES[@]}" == "0" ]; then
-	COMPILE_LIB_NAMES=("sendMessage" "alterStruct" "performAction")
+	COMPILE_LIB_NAMES=("sendMessage" "alterStruct" "performAction" "callFunction")
 fi
 
 
@@ -168,7 +190,7 @@ if [ "$COMPILE_LIB" == "1" ]; then
 	for i in ${COMPILE_LIB_NAMES[@]}; do
 		echo "Generating $i.o"
 		gcc -c -o tmp/$i.o $i.c
-		if [ "$i" != "sendMessage" -a "$i" != "alterStruct" -a "$i" != "performAction" ]; then
+		if [ "$i" != "sendMessage" -a "$i" != "alterStruct" -a "$i" != "performAction" -a "$i" != "callFunction" ]; then
 			echo "Do not compile $i here. (Use compileFunctions.sh)"
 		else
 			if [ "$OS" == "Windows_NT" ]; then

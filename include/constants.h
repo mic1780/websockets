@@ -26,4 +26,10 @@
 #define CLOSED 3
 #define NUM_OF_CLIENTS 600
 
+#define IP_OCTET_1 127
+#define IP_OCTET_2 0
+#define IP_OCTET_3 0
+#define IP_OCTET_4 1
+#define CONNECTION_PORT 1780
+
 #endif
