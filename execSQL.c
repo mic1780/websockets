@@ -16,7 +16,11 @@
  */
 //COMPILE WITH -lodbc32
 //THIS FILE IS NOT READY! DO NOT COMPILE UNLESS FINISHED AND TESTED
+
+#include "include/constants.h"
+#ifdef __ISWINDOWS__
 #include <windows.h>
+#endif
 #include <sql.h>
 #include <sqlext.h>
 //#include <sqltypes.h>
@@ -27,7 +31,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-//#include "include/constants.h"
 
 typedef struct STR_BINDING {
 	SQLSMALLINT cDisplaySize;
