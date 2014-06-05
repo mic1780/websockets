@@ -73,6 +73,6 @@ extern void destroyHolder(void ** holder, int len);
 extern void * doFunction(char *fName, void ** argv);
 
 //callFunction.c
-extern void * callFunction(char * fName, void ** argv, int isWindows);
+extern void * callFunction(char * fName, void ** argv);
 
 #endif /* WEBSOCK_C */

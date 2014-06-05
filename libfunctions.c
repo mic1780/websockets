@@ -123,25 +123,13 @@ int checkForError(char *error) {
 }//END IF
 
 void * doFunction(char * fName, void ** argv) {
-	static int isWindows = -1;
 	void *handle;
 	void * funcPtr;
 	void * returnVal;
 	FILE * filePtr = NULL;
 	
-	if (isWindows == -1) {
-		filePtr = fopen("lib/libfunctions.dll", "r");
-		if (filePtr == NULL) {
-			isWindows = 0;
-		} else {
-			isWindows = 1;
-			fclose(filePtr);
-			filePtr = NULL;
-		}//END IF
-	}//END IF
-	
-	typedef void * (*funcType)(char *, void **, int);
-	if (isWindows) {
+	typedef void * (*funcType)(char *, void **);
+	if (__ISWINDOWS__) {
 		handle = dlopen("lib/libcallFunction.dll", RTLD_LAZY);
 	} else {
 		handle = dlopen("so/libcallFunction.so", RTLD_LAZY);
@@ -157,7 +145,7 @@ void * doFunction(char * fName, void ** argv) {
 	funcPtr = dlsym(handle, "callFunction");
 	if (checkForError(dlerror()) == 0) {
 		funcType callFunction = (funcType) funcPtr;
-		returnVal = (callFunction)(fName, argv, isWindows);
+		returnVal = (callFunction)(fName, argv);
 	}//END IF
 	
 	dlclose(handle);

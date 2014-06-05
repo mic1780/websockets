@@ -14,6 +14,7 @@
  *   GNU General Public License for more details.
  *
  */
+//COMPILE WITH -lodbc32
 //THIS FILE IS NOT READY! DO NOT COMPILE UNLESS FINISHED AND TESTED
 #include <windows.h>
 #include <sql.h>
@@ -26,7 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-
+//#include "include/constants.h"
 
 typedef struct STR_BINDING {
 	SQLSMALLINT cDisplaySize;
@@ -62,6 +63,12 @@ int main(void) {
 		}//END IF
 	}//END WHILE LOOP
 	
+	//if (__ISWINDOWS__) {
+		//system("pause");
+		//system("pause");
+	//} else {
+		system("read -n1 -r -p \"Press any key to continue...\" key");
+	//}//END IF
 	
 	return 0;
 }//END main

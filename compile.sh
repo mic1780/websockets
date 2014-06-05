@@ -26,6 +26,7 @@ OPTIONS:
    -b                               Create a new application (compile with default commands)
    -d                               Delete executables and libraries
    -a [ <name> ]                    Compile main application
+	-e [ file1 [ file2 ... ] ]       Compile executables (not main application)
    -f [ file1 [ file2 ... ] ]       Compile functions
    -l [ file1 [ file2 ... ] ]       Compile dynamic libraries
    -r [ <name> ]                    Runs the specified program after setup
@@ -47,8 +48,21 @@ function contains()
 	return 0
 }
 
+FILE_EXTENSION=
+LIB_FOLDER=
+LIB_EXTENSION=
+if [ "$OS" == "Windows_NT" ]; then
+	FILE_EXTENSION="exe"
+	LIB_FOLDER="lib"
+	LIB_EXTENSION="dll"
+else
+	FILE_EXTENSION="out"
+	LIB_FOLDER="so"
+	LIB_EXTENSION="so"
+fi
 DEFAULT_FUNCTION_NAMES=("libfunctions")
 DEFAULT_LIB_NAMES=("sendMessage" "alterStruct" "performAction" "callFunction")
+DEFAULT_EXEC_NAMES=("execSQL");
 
 while true; do
 	case $1 in
@@ -75,11 +89,26 @@ while true; do
 			DELETE_FILES=1
 			COMPILE_FUNCTION=1
 			COMPILE_LIB=1
+			COMPILE_EXEC=1
 			COMPILE_APP=1
 			;;
 		-d)
 			DELETE_FILES=1
 			shift
+			;;
+		-e)
+			COMPILE_EXEC=1
+			COMPILE_EXEC_NAMES=()
+			while true; do
+				shift
+				if [[ $1 =~ ^-. ]]; then
+					break
+				elif [ "$1" == "" ]; then
+					break
+				else
+					COMPILE_EXEC_NAMES[${#COMPILE_EXEC_NAMES[@]}]="$1"
+				fi
+			done
 			;;
 		-f)
 			COMPILE_FUNCTION=1
@@ -147,16 +176,9 @@ if [ "$DELETE_FILES" == "1" ]; then
 		echo "Deleting compiled libraries and executables"
 	fi
 	
-	if [ "$OS" == "Windows_NT" ]; then
-		rm -rf lib/*.dll
-		rm -rf bin/*.exe
-		rm -f ./*.exe
-	else
-		rm -rf so/*.so
-		rm -rf bin/*.out
-		rm -f ./*.out
-	fi
-	
+	rm -rf ./$LIB_FOLDER/*.$LIB_EXTENSION
+	rm -rf bin/*.$FILE_EXTENSION
+	rm -f ./*.$FILE_EXTENSION
 	rm -rf objects/*.o
 	rm -rf ./tmp
 fi
@@ -170,6 +192,10 @@ if [ "$COMPILE_LIB" == "1" -a "${#COMPILE_LIB_NAMES[@]}" == "0" ]; then
 	COMPILE_LIB_NAMES=${DEFAULT_LIB_NAMES[@]}
 fi
 
+if [ "$COMPILE_EXEC" == "1" -a "${#COMPILE_EXEC_NAMES[@]}" == "0" ]; then
+	COMPILE_EXEC_NAMES=${DEFAULT_EXEC_NAMES[@]}
+fi
+
 
 #compile functions
 if [ "$COMPILE_FUNCTION" == "1" ]; then
@@ -177,19 +203,16 @@ if [ "$COMPILE_FUNCTION" == "1" ]; then
 	for i in ${COMPILE_FUNCTION_NAMES[@]}; do
 		if [ $(contains "`echo ${DEFAULT_LIB_NAMES[@]}`" "$i") == "1" ]; then
 			echo "Do not compile $i here. (Use ./compile.sh -l $i)"
+		elif [ $(contains "`echo ${DEFAULT_EXEC_NAMES[@]}`" "$i") == "1" ]; then
+			echo "Do not compile $i here. (Use ./compile.sh -e $i)"
 		else
 			echo "Generating $i.o"
 			gcc -c -o objects/$i.o $i.c
 		fi
 	done
-	
-	if [ "$OS" == "Windows_NT" ]; then
-		echo "Generating libfunctions.dll"
-		gcc -shared -o lib/libfunctions.dll objects/*.o
-	else
-		echo "Generating libfunctions.so"
-		gcc -shared -o so/libfunctions.so objects/*.o
-	fi
+
+	echo "Generating libfunctions.$LIB_EXTENSION"
+	gcc -shared -o $LIB_FOLDER/libfunctions.$LIB_EXTENSION objects/*.o
 	
 	echo "Finished"
 	echo ""
@@ -207,14 +230,11 @@ if [ "$COMPILE_LIB" == "1" ]; then
 		gcc -c -o tmp/$i.o $i.c
 		if [ $(contains "`echo ${DEFAULT_FUNCTION_NAMES[@]}`" "$i") == "1" ]; then
 			echo "Do not compile $i here. (Use ./compile.sh -f $i)"
+		elif [ $(contains "`echo ${DEFAULT_EXEC_NAMES[@]}`" "$i") == "1" ]; then
+			echo "Do not compile $i here. (Use ./compile.sh -e $i)"
 		else
-			if [ "$OS" == "Windows_NT" ]; then
-				echo "Generating $i.dll"
-				gcc -shared -o lib/lib$i.dll tmp/$i.o lib/libfunctions.dll
-			else
-				echo "Generating $i.so"
-				gcc -shared -o so/lib$i.so tmp/$i.o so/libfunctions.so
-			fi
+			echo "Generating $i.$LIB_EXTENSION"
+			gcc -shared -o $LIB_FOLDER/lib$i.$LIB_EXTENSION tmp/$i.o $LIB_FOLDER/libfunctions.$LIB_EXTENSION
 		fi
 	done
 	
@@ -224,33 +244,39 @@ if [ "$COMPILE_LIB" == "1" ]; then
 	echo ""
 fi
 
+#compile executables
+if [ "$COMPILE_EXEC" == "1" ]; then
+	
+	for i in ${COMPILE_EXEC_NAMES[@]}; do
+		if [ $(contains "`echo ${DEFAULT_FUNCTION_NAMES[@]}`" "$i") == "1" ]; then
+			echo "Do not compile $i here. (Use ./compile.sh -f $i)"
+		elif [ $(contains "`echo ${DEFAULT_LIB_NAMES[@]}`" "$i") == "1" ]; then
+			echo "Do not compile $i here. (Use ./compile.sh -l $i)"
+		else
+			echo "Generating $i.$FILE_EXTENSION"
+			if [ "$i" == "execSQL" ]; then
+				INC_LIB="-lodbc32"
+			else
+				INC_LIB=
+			fi
+			gcc -o bin/$i.$FILE_EXTENSION $i.c $INC_LIB
+		fi
+	done
+	
+fi
+
 #compile main application
 if [ "$COMPILE_APP" == "1" ]; then
 	
-#	if [ "$COMPILE_APP_NAME" == "run" -o "$COMPILE_APP_NAME" == "run.exe" -o "$COMPILE_APP_NAME" == "run.out" ]; then
-#		echo "ERROR: Do not overwrite run executable."
-#		exit
-#	fi
-	
-	if [ "$OS" == "Windows_NT" ]; then
-		if [ "$COMPILE_APP_NAME" == "" ]; then
-			echo "Creating websocket.exe"
-			gcc -rdynamic -o bin/websocket websocket.c -L./lib -lfunctions -ldl -lpthread
-		else
-			echo "Creating $COMPILE_APP_NAME"
-			gcc -rdynamic -o bin/$COMPILE_APP_NAME websocket.c -L./lib -lfunctions -ldl -lpthread
-		fi
-		gcc -o run.exe run.c
+	if [ "$COMPILE_APP_NAME" == "" ]; then
+		echo "Creating websocket.$FILE_EXTENSION"
+		gcc -rdynamic -o bin/websocket.$FILE_EXTENSION websocket.c -L./$LIB_FOLDER -lfunctions -ldl -lpthread
 	else
-		if [ "$COMPILE_APP_NAME" == "" ]; then
-			echo "Creating websocket.out"
-			gcc -rdynamic -o bin/websocket.out websocket.c -L./so -lfunctions -ldl -lpthread
-		else
-			echo "Creating $COMPILE_APP_NAME"
-			gcc -rdynamic -o bin/$COMPILE_APP_NAME websocket.c -L./so -lfunctions -ldl -lpthread
-		fi
-		gcc -o run.out run.c
+		echo "Creating $COMPILE_APP_NAME"
+		gcc -rdynamic -o bin/$COMPILE_APP_NAME websocket.c -L./$LIB_FOLDER -lfunctions -ldl -lpthread
 	fi
+	
+	gcc -o run.$FILE_EXTENSION run.c
 	
 	echo "App compiled successfully."
 fi
@@ -261,24 +287,21 @@ if [ "$RUN_APP" == "1" ]; then
 	if [ "$OS" == "Windows_NT" ]; then
 		if [ "$LIBRARY_PATH" == "" ]; then
 			unset LIBRARY_PATH
-			export LIBRARY_PATH=$(pwd)/lib:$LIBRARY_PATH
+			export LIBRARY_PATH=$(pwd)/$LIB_FOLDER:$LIBRARY_PATH
 		fi
-		export PATH=$ORIGINAL_PATH:$(pwd)/lib
+		export PATH=$ORIGINAL_PATH:$(pwd)/$LIB_FOLDER
 		
-		if [ "$RUN_APP_NAME" == "" ]; then
-			RUN_APP_NAME="websocket.exe"
-		fi
 	else
 		if [ "$LD_LIBRARY_PATH" == "" ]; then
 			unset LD_LIBRARY_PATH
-			export LD_LIBRARY_PATH=$(pwd)/so:$LD_LIBRARY_PATH
+			export LD_LIBRARY_PATH=$(pwd)/$LIB_FOLDER:$LD_LIBRARY_PATH
 		fi
 		
-		if [ "$RUN_APP_NAME" == "" ]; then
-			RUN_APP_NAME="websocket.out"
-		fi
 	fi
 	
+	if [ "$RUN_APP_NAME" == "" ]; then
+		RUN_APP_NAME="websocket.$FILE_EXTENSION"
+	fi
 	bin/$RUN_APP_NAME
 fi
 

@@ -31,7 +31,7 @@ int checkForError(char *error) {
 	return 0;
 }//END IF
 
-void * callFunction(char *fName, void ** argv, int isWindows) {
+void * callFunction(char *fName, void ** argv) {
 	void *handle;
 	void * functionPtr;
 	void * returnVal;
@@ -39,31 +39,22 @@ void * callFunction(char *fName, void ** argv, int isWindows) {
 	int filenameLength;
 	char * filename = NULL;
 	
-	if (isWindows == TRUE) {
+	if (__ISWINDOWS__) {
 		filenameLength = strlen("lib/lib") + strlen(fName) + strlen(".dll");
-	} else if (isWindows == FALSE) {
-		filenameLength = strlen("so/lib") + strlen(fName) + strlen(".so");
 	} else {
-		printf("ERROR: We do not know if this is a windows system or not!\nThis could occur if you do not use doFunction to call callFunction.\nNo function was called.\nReturning...\n");
-		return NULL;
+		filenameLength = strlen("so/lib") + strlen(fName) + strlen(".so");
 	}//END IF
 	
 	filename = malloc(sizeof(char) * (filenameLength + 1));
 	
-	if (isWindows == TRUE) {
+	if (__ISWINDOWS__) {
 		strcpy(filename, "lib/lib");
 		strcat(filename, fName);
 		strcat(filename, ".dll");
-	} else if (isWindows == FALSE) {
+	} else {
 		strcpy(filename, "so/lib");
 		strcat(filename, fName);
 		strcat(filename, ".so");
-	} else {
-		//somehow they got around the first statement, clearly we need to stop them again
-		memset(filename, '\0', filenameLength);
-		free(filename);
-		filename = NULL;
-		return NULL;
 	}//END IF
 	
 	handle = dlopen(filename, RTLD_LAZY);
