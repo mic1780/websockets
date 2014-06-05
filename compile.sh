@@ -255,7 +255,12 @@ if [ "$COMPILE_EXEC" == "1" ]; then
 		else
 			echo "Generating $i.$FILE_EXTENSION"
 			if [ "$i" == "execSQL" ]; then
-				INC_LIB="-lodbc32"
+				if [[ "`find /usr/include -iname 'sql.h'`" =~ "sql.h" ]]; then
+					INC_LIB="-lodbc32"
+				else
+					echo "Can not compile $i because you do not have the required includes (sql.h)"
+					continue
+				fi
 			else
 				INC_LIB=
 			fi
