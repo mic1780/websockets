@@ -18,7 +18,7 @@
 //THIS FILE IS NOT READY! DO NOT COMPILE UNLESS FINISHED AND TESTED
 
 #include "include/constants.h"
-#ifdef __ISWINDOWS__
+#if __ISWINDOWS__ == 1
 #include <windows.h>
 #endif
 #include <sql.h>
