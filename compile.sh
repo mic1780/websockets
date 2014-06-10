@@ -14,6 +14,9 @@
 #   GNU General Public License for more details.
 # 
 
+shopt -s expand_aliases
+alias gcc='gcc -w'
+
 usage()
 {
 cat << EOF
@@ -30,6 +33,7 @@ OPTIONS:
    -f [ file1 [ file2 ... ] ]       Compile functions
    -l [ file1 [ file2 ... ] ]       Compile dynamic libraries
    -r [ <name> ]                    Runs the specified program after setup
+   -w                               Show warnings from GCC
 EOF
 }
 
@@ -150,6 +154,11 @@ while true; do
 				RUN_APP_NAME="$1"
 				shift
 			fi
+			;;
+		-w)
+			SHOW_WARNINGS=1
+			shift
+			unalias gcc
 			;;
 		-*)
 			echo "$0: Invalid option $1" >&2
@@ -308,6 +317,10 @@ if [ "$RUN_APP" == "1" ]; then
 		RUN_APP_NAME="websocket.$FILE_EXTENSION"
 	fi
 	bin/$RUN_APP_NAME
+fi
+
+if [ "$SHOW_WARNINGS" == "" ]; then
+	unalias gcc
 fi
 
 #its all over now!
