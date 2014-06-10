@@ -1,0 +1,6 @@
+alias compile="$(pwd)/compile.sh"
+function run()
+{
+	$(pwd)/bin/$1
+}
+alias run=run
