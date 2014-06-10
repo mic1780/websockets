@@ -29,7 +29,7 @@ OPTIONS:
    -b                               Create a new application (compile with default commands)
    -d                               Delete executables and libraries
    -a [ <name> ]                    Compile main application
-	-e [ file1 [ file2 ... ] ]       Compile executables (not main application)
+   -e [ file1 [ file2 ... ] ]       Compile executables (not main application)
    -f [ file1 [ file2 ... ] ]       Compile functions
    -l [ file1 [ file2 ... ] ]       Compile dynamic libraries
    -r [ <name> ]                    Runs the specified program after setup
