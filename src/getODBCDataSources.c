@@ -54,7 +54,7 @@ int main(void) {
 	SQLSetEnvAttr(env, SQL_ATTR_ODBC_VERSION, (void *) SQL_OV_ODBC3, 0);
 	
 	direction = SQL_FETCH_FIRST;
-	while(SQL_SUCCEEDED(ret = SQLDrivers(env, direction,
+	while(SQL_SUCCEEDED(ret = SQLDataSources(env, direction,
 													driver, sizeof(driver), &driver_ret,
 													attr, sizeof(attr), &attr_ret)
 							)

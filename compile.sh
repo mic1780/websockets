@@ -66,7 +66,7 @@ else
 fi
 DEFAULT_FUNCTION_NAMES=("libfunctions")
 DEFAULT_LIB_NAMES=("sendMessage" "alterStruct" "performAction" "callFunction")
-DEFAULT_EXEC_NAMES=("execSQL" "getODBCDrivers");
+DEFAULT_EXEC_NAMES=("execSQL" "getODBCDrivers" "getODBCDataSources");
 
 while true; do
 	case $1 in
