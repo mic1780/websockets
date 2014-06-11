@@ -1,6 +1,39 @@
 alias compile="$(pwd)/compile.sh"
 function run()
 {
+	FILE_EXTENSION=
+	LIB_FOLDER=
+	LIB_EXTENSION=
+	if [ "$OS" == "Windows_NT" ]; then
+		FILE_EXTENSION="exe"
+		LIB_FOLDER="lib"
+		LIB_EXTENSION="dll"
+	else
+		FILE_EXTENSION="out"
+		LIB_FOLDER="so"
+		LIB_EXTENSION="so"
+	fi
+	
+	if [ "$OS" == "Windows_NT" ]; then
+		if [ "$LIBRARY_PATH" == "" ]; then
+			unset LIBRARY_PATH
+			LIBRARY_PATH=$(pwd)/$LIB_FOLDER:$LIBRARY_PATH
+		fi
+		PATH=$ORIGINAL_PATH:$(pwd)/$LIB_FOLDER
+		
+	else
+		if [ "$LD_LIBRARY_PATH" == "" ]; then
+			unset LD_LIBRARY_PATH
+			LD_LIBRARY_PATH=$(pwd)/$LIB_FOLDER:$LD_LIBRARY_PATH
+		fi
+		
+	fi
+	
 	$(pwd)/bin/$1
+	
+	unset LIBRARY_PATH
+	unset LD_LIBRARY_PATH
+	
+	
 }
 alias run=run
