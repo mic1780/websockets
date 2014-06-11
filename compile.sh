@@ -66,7 +66,7 @@ else
 fi
 DEFAULT_FUNCTION_NAMES=("libfunctions")
 DEFAULT_LIB_NAMES=("sendMessage" "alterStruct" "performAction" "callFunction")
-DEFAULT_EXEC_NAMES=("execSQL");
+DEFAULT_EXEC_NAMES=("execSQL" "getODBCDrivers");
 
 while true; do
 	case $1 in
@@ -263,7 +263,7 @@ if [ "$COMPILE_EXEC" == "1" ]; then
 			echo "Do not compile $i here. (Use ./compile.sh -l $i)"
 		else
 			echo "Generating $i.$FILE_EXTENSION"
-			if [ "$i" == "execSQL" ]; then
+			if [[ "$i" == *(ODBC|SQL)* ]]; then
 				if [[ "`find /usr/include -iname 'sql.h'`" =~ "sql.h" ]]; then
 					INC_LIB="-lodbc32"
 				else
@@ -273,7 +273,7 @@ if [ "$COMPILE_EXEC" == "1" ]; then
 			else
 				INC_LIB=
 			fi
-			gcc -o bin/$i.$FILE_EXTENSION $i.c $INC_LIB
+			gcc -o bin/$i.$FILE_EXTENSION src/$i.c $INC_LIB
 		fi
 	done
 	

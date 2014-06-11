@@ -17,7 +17,7 @@
 //COMPILE WITH -lodbc32
 //THIS FILE IS NOT READY! DO NOT COMPILE UNLESS FINISHED AND TESTED
 
-#include "include/constants.h"
+#include "../include/constants.h"
 #if __ISWINDOWS__ == 1
 #include <windows.h>
 #endif
