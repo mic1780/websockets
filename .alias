@@ -1,9 +1,11 @@
 alias compile="$(pwd)/compile.sh"
 function run()
 {
-	FILE_EXTENSION=
-	LIB_FOLDER=
-	LIB_EXTENSION=
+	local FILE_EXTENSION=
+	local LIB_FOLDER=
+	local LIB_EXTENSION=
+	local LIBRARY_PATH=
+	local LD_LIBRARY_PATH=
 	if [ "$OS" == "Windows_NT" ]; then
 		FILE_EXTENSION="exe"
 		LIB_FOLDER="lib"
@@ -17,14 +19,14 @@ function run()
 	if [ "$OS" == "Windows_NT" ]; then
 		if [ "$LIBRARY_PATH" == "" ]; then
 			unset LIBRARY_PATH
-			LIBRARY_PATH=$(pwd)/$LIB_FOLDER:$LIBRARY_PATH
+			local LIBRARY_PATH=$(pwd)/$LIB_FOLDER:$LIBRARY_PATH
 		fi
-		PATH=$ORIGINAL_PATH:$(pwd)/$LIB_FOLDER
+		local PATH=$ORIGINAL_PATH:$(pwd)/$LIB_FOLDER
 		
 	else
 		if [ "$LD_LIBRARY_PATH" == "" ]; then
 			unset LD_LIBRARY_PATH
-			LD_LIBRARY_PATH=$(pwd)/$LIB_FOLDER:$LD_LIBRARY_PATH
+			local LD_LIBRARY_PATH=$(pwd)/$LIB_FOLDER:$LD_LIBRARY_PATH
 		fi
 		
 	fi
