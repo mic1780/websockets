@@ -323,6 +323,8 @@ if [ "$SHOW_WARNINGS" == "" ]; then
 	unalias gcc
 fi
 
+complete -W "`ls bin | sed -e 's/\([^\.]*\)\.[A-Za-z0-9]*/\1/' | xargs echo -n`" run
+
 #its all over now!
 echo ""
 echo "Script is now finished"
