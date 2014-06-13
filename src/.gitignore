@@ -1,0 +1,9 @@
+# ignore everything to start with
+*
+# dont ignore this file
+!.gitignore
+# dont ignore any C files
+!*.c
+
+# if you have any personal files to ignore, add them to
+# the location .git/info/exclude to exclude them
