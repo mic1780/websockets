@@ -216,7 +216,7 @@ if [ "$COMPILE_FUNCTION" == "1" ]; then
 			echo "Do not compile $i here. (Use ./compile.sh -e $i)"
 		else
 			echo "Generating $i.o"
-			gcc -c -o objects/$i.o $i.c
+			gcc -c -o objects/$i.o src/$i.c
 		fi
 	done
 
@@ -236,7 +236,7 @@ if [ "$COMPILE_LIB" == "1" ]; then
 	
 	for i in ${COMPILE_LIB_NAMES[@]}; do
 		echo "Generating $i.o"
-		gcc -c -o tmp/$i.o $i.c
+		gcc -c -o tmp/$i.o src/$i.c
 		if [ $(contains "`echo ${DEFAULT_FUNCTION_NAMES[@]}`" "$i") == "1" ]; then
 			echo "Do not compile $i here. (Use ./compile.sh -f $i)"
 		elif [ $(contains "`echo ${DEFAULT_EXEC_NAMES[@]}`" "$i") == "1" ]; then
@@ -284,13 +284,13 @@ if [ "$COMPILE_APP" == "1" ]; then
 	
 	if [ "$COMPILE_APP_NAME" == "" ]; then
 		echo "Creating websocket.$FILE_EXTENSION"
-		gcc -rdynamic -o bin/websocket.$FILE_EXTENSION websocket.c -L./$LIB_FOLDER -lfunctions -ldl -lpthread
+		gcc -rdynamic -o bin/websocket.$FILE_EXTENSION src/websocket.c -L./$LIB_FOLDER -lfunctions -ldl -lpthread
 	else
 		echo "Creating $COMPILE_APP_NAME"
-		gcc -rdynamic -o bin/$COMPILE_APP_NAME websocket.c -L./$LIB_FOLDER -lfunctions -ldl -lpthread
+		gcc -rdynamic -o bin/$COMPILE_APP_NAME src/websocket.c -L./$LIB_FOLDER -lfunctions -ldl -lpthread
 	fi
 	
-	gcc -o run.$FILE_EXTENSION run.c
+	gcc -o run.$FILE_EXTENSION src/run.c
 	
 	echo "App compiled successfully."
 fi

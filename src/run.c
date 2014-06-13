@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "include/constants.h"
+#include "../include/constants.h"
 
 
 void testPrint(int line, const char *func) {

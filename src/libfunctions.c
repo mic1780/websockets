@@ -14,13 +14,12 @@
  *   GNU General Public License for more details.
  *
  */
-//NO RELATION TO libfunctions.dll
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <dlfcn.h>
-#include "include/structs.h"
-#include "include/constants.h"
+#include "../include/structs.h"
+#include "../include/constants.h"
 
 #ifndef LIBFUNCS__
 #define LIBFUNCS__
@@ -28,7 +27,6 @@ int getSocket(clientStruct s) {
 	return s.sock;
 }
 void setSocket(clientStruct * s, int val) {
-	//printf("we got in here\n");
 	s->sock = val;
 }
 

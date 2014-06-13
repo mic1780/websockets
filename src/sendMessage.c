@@ -20,7 +20,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <unistd.h>
-#include "include/structs.h"
+#include "../include/structs.h"
 
 /*
  * sendMessage: this function is used then we want to send message (s)

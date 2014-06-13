@@ -18,8 +18,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dlfcn.h>
-#include "include/functions.h"
-#include "include/constants.h"
+#include "../include/functions.h"
+#include "../include/constants.h"
 
 int checkForError(char *error) {
 	if (error != NULL) {

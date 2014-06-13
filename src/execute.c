@@ -21,8 +21,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include "include/structs.h"
-#include "include/functions.h"
+#include "../include/structs.h"
+#include "../include/functions.h"
 
 /*
  * http://en.wikipedia.org/wiki/Standard_streams#1970s:_C_and_Unix

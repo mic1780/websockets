@@ -17,9 +17,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "include/structs.h"
-#include "include/constants.h"
-#include "include/functions.h"
+#include "../include/structs.h"
+#include "../include/constants.h"
+#include "../include/functions.h"
 
 int isFullCommand(char * sent);
 int myStrncmp(char *s1, char *s2);

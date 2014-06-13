@@ -18,9 +18,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include "include/structs.h"
-#include "include/constants.h"
-#include "include/functions.h"
+#include "../include/structs.h"
+#include "../include/constants.h"
+#include "../include/functions.h"
 
 /*
  * alterStruct: this function is used when we want to change a value inside

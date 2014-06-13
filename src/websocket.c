@@ -43,11 +43,11 @@
 #include <errno.h>
 #include <unistd.h>
 #include <wait.h>
-#include "include/sha1.h"
-#include "include/base64.h"
-#include "include/constants.h"
-#include "include/structs.h"
-#include "include/functions.h"
+#include "../include/sha1.h"
+#include "../include/base64.h"
+#include "../include/constants.h"
+#include "../include/structs.h"
+#include "../include/functions.h"
 
 //GLOBALS
 static char ipAddress[16];
