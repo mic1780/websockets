@@ -32,46 +32,99 @@
 #include <string.h>
 #include <sys/socket.h>
 
-typedef struct STR_BINDING {
-	SQLSMALLINT cDisplaySize;
-	char * wszBuffer;
-	SQLLEN indPtr;
-	int fChar;
-	struct STR_BINDING *sNext;
-} BINDING;
+void testPrint(int line, char * func) {
+	printf("Function %s is on line %d.\n", func, line);
+}//END VOID
+
+void extract_error(char *fn, SQLHANDLE handle, SQLSMALLINT type);
 
 int main(void) {
+	/* code usually used in every ODBC application */
 	SQLHENV env;
+	SQLHDBC dbc;
 	SQLHSTMT stmt;
 	SQLRETURN ret;
-	char driver[256];
-	char attr[256];
-	SQLSMALLINT driver_ret;
-	SQLSMALLINT attr_ret;
-	SQLUSMALLINT direction;
+	SQLSMALLINT columns;
+	int row = 0;
 	
 	SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &env);
 	SQLSetEnvAttr(env, SQL_ATTR_ODBC_VERSION, (void *) SQL_OV_ODBC3, 0);
+	SQLAllocHandle(SQL_HANDLE_DBC, env, &dbc);
 	
-	direction = SQL_FETCH_FIRST;
-	while(SQL_SUCCEEDED(ret = SQLDrivers(env, direction,
-													driver, sizeof(driver), &driver_ret,
-													attr, sizeof(attr), &attr_ret)
-							)
-	) {
-		direction = SQL_FETCH_NEXT;
-		printf("%s - %s\n", driver, attr);
+	/* connect to the data source */
+	ret =	SQLDriverConnect(dbc, NULL, "DSN=localdb;", SQL_NTS, NULL, 0, NULL, SQL_DRIVER_COMPLETE);
+	if (SQL_SUCCEEDED(ret)) {
+		printf("Connected\n");
 		if (ret == SQL_SUCCESS_WITH_INFO) {
-			printf("\tdata truncation\n");
+			printf("Driver reported the following diagnostics\n");
+			extract_error("SQLDriverConnect", dbc, SQL_HANDLE_DBC);
 		}//END IF
-	}//END WHILE LOOP
+		
+		SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt);
+		
+		SQLTables(stmt, NULL, 0, NULL, 0, NULL, 0, "TABLE", SQL_NTS);
+		SQLNumResultCols(stmt, &columns);
+		while (SQL_SUCCEEDED(ret = SQLFetch(stmt))) {
+			SQLUSMALLINT i;
+			printf("Row %d\n", row++);
+			/* Loop through the columns */
+			for (i = 1; i <= columns; i++) {
+				SQLINTEGER indicator;
+				char buf[512];
+				/* retrieve column data as a string */
+				ret = SQLGetData(stmt, i, SQL_C_CHAR,
+				       buf, sizeof(buf), &indicator);
+				if (SQL_SUCCEEDED(ret)) {
+					/* Handle null columns */
+					if (indicator == SQL_NULL_DATA) strcpy(buf, "NULL");
+						printf("  Column %u : %s\n", i, buf);
+				}//END IF
+			}//END FOR LOOP
+		}//END WHILE LOOP
+		/* do something with the statement handle e.g. issue sql */
+		SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+		
+		
+		//disconnect
+		SQLDisconnect(dbc);
+	} else {
+		fprintf(stderr, "Failed to connect\n");
+		extract_error("SQLDriverConnect", dbc, SQL_HANDLE_DBC);
+	}//END IF
 	
-	//if (__ISWINDOWS__) {
-		//system("pause");
-		//system("pause");
-	//} else {
-		system("read -n1 -r -p \"Press any key to continue...\" key");
-	//}//END IF
+	//free handles
+	SQLFreeHandle(SQL_HANDLE_DBC, dbc);
+	SQLFreeHandle(SQL_HANDLE_ENV, env);
+	
+	system("read -n1 -r -p \"Press any key to continue...\" key");
 	
 	return 0;
 }//END main
+
+void extract_error(
+    char *fn,
+    SQLHANDLE handle,
+    SQLSMALLINT type)
+{
+    SQLINTEGER	 i = 0;
+    SQLINTEGER	 native;
+    SQLCHAR	 state[ 7 ];
+    SQLCHAR	 text[256];
+    SQLSMALLINT	 len;
+    SQLRETURN	 ret;
+
+    fprintf(stderr,
+            "\n"
+            "The driver reported the following diagnostics whilst running "
+            "%s\n\n",
+            fn);
+
+    do
+    {
+        ret = SQLGetDiagRec(type, handle, ++i, state, &native, text,
+                            sizeof(text), &len );
+        if (SQL_SUCCEEDED(ret))
+            printf("%s:%ld:%ld:%s\n", state, i, native, text);
+    }
+    while( ret == SQL_SUCCESS );
+}
