@@ -81,7 +81,7 @@ void * callFunction(char *fName, void ** argv) {
 		if (checkForError(dlerror()) == 0) {
 			funcType alterStruct = (funcType) functionPtr;
 			
-			if (strcmp((char *)argv[1], "init") == 0 || strcmp((char *)argv[1], "close") == 0) {
+			if (strcmp((char *)argv[1], "init") == 0 || strcmp((char *)argv[1], "close") == 0 || strncmp((char *)argv[1], "set monitor ", 12) == 0) {
 				returnVal = (int *)((alterStruct)((int)argv[0], (char *)argv[1]));
 			} else {
 				returnVal = (char *)((alterStruct)((int)argv[0], (char *)argv[1]));//error here

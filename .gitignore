@@ -11,3 +11,7 @@
 #ignore run.* except for the C file
 run.*
 !run.c
+
+#ignore visual basic and java projects
+/java
+/vbApp

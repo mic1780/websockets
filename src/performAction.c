@@ -55,6 +55,11 @@ void *performAction(char *cmd, clientStruct *s) {
 				s->name = (char *)doFunction("alterStruct", holder);
 				destroyHolder(holder, 3);
 				//s->name =	alterStruct(getSocket(*s), cmd);
+			} else if (strncmp(cmd + 4, "monitor", 7) == 0) {
+				holder = createISIHolder(getSocket(*s), cmd, 0);
+				s->isMonitor = (int)doFunction("alterStruct", holder);
+				destroyHolder(holder, 3);
+				//s->isMonitor =	
 			}//END IF
 		} else if (strncmp(cmd, "sendall", 7) == 0) {
 			sprintf(fullCmd, "Message from %s: %s", getName(*s), cmd+8);
@@ -89,7 +94,8 @@ int isFullCommand(char * sent) {
 		myStrncmp(sent, "test") == 0 ||
 		myStrncmp(sent, "sql ") == 0 ||
 		myStrncmp(sent, "sendall ") == 0 ||
-		myStrncmp(sent, "set name ") == 0
+		myStrncmp(sent, "set name ") == 0 ||
+		myStrncmp(sent, "set monitor ") == 0
 	)
 		return 1;
 	else

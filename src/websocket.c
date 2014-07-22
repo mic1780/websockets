@@ -286,6 +286,11 @@ void *clientThread (void *s) {
 			destroyHolder(holder, 3);
 			break;
 		} else if (bytes > 0) {
+			/*Byte Check*
+			for (j=0; j < bytes; j++) {
+				printf("0x%08x\n", readBuffer[j]);
+			}//END FOR LOOP
+			/**/
 			
 			//first find the mask index
 			pos = atoi(&readBuffer[1]);
@@ -317,6 +322,14 @@ void *clientThread (void *s) {
 			holder = createSCSHolder(writeBuffer, &cli);
 			doFunction("performAction", holder);//this is where the magic happens
 			destroyHolder(holder, 2);
+			
+			j=0;
+			while (monitorList(j, FALSE, TRUE) != NULL) {
+				holder =	createISIHolder(getSocket(*monitorList(j, FALSE, TRUE)), writeBuffer, strlen(writeBuffer));
+				doFunction("sendMessage", holder);
+				destroyHolder(holder, 3);
+				j++;
+			}//END WHILE LOOP
 			
 			//reset buffer to NULL bytes
 			memset(&writeBuffer, '\0', sizeof(writeBuffer));

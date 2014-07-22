@@ -50,11 +50,18 @@ extern void setActive(clientStruct * s, int bitFlag);
 extern char *getName(clientStruct s);
 extern void setName(clientStruct * s, char * name);
 
+extern int getMonitor(clientStruct s);
+extern void setMonitor(clientStruct * s, int bitFlag);
+
 extern void *alterStruct(int sock, char *action);
 
 extern void initializeSockets(clientStruct * sock);
 
-extern clientStruct * socketArray(int position);// __attribute__((unused));
+extern clientStruct * socketArray(int position);
+
+//linked list prototypes (not in use yet)
+clientStruct * monitorList(int sock, int canCreate, int sockIsIndex);
+clientNode * createNode(clientNode * node, int sock);
 
 //sendMessage.c
 extern void *sendMessage(int sock, char *s, int len);

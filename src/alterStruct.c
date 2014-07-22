@@ -56,9 +56,7 @@ void *alterStruct(int sock, char *action) {
 		}//END FOR LOOP
 		
 		setActive(socketArray(i), TRUE);
-		//temp[i].active =	TRUE;
 		setSocket(socketArray(i), sock);
-		//temp[i].sock =		sock;
 		
 		return (int *)i;
 	} else if (strcmp(action, "close") == 0) {
@@ -89,18 +87,27 @@ void *alterStruct(int sock, char *action) {
 		 * name
 		 * isAdmin
 		 */
+		
+		//get the index of the socket requesting the action
+		for (i=0; i < NUM_OF_CLIENTS; i++) {
+			if (getSocket(*socketArray(i)) == sock) {
+				
+				break;
+				
+			}//END IF
+		}//END FOR LOOP
 		if (strncmp(action + 4, "name", 4) == 0) {
-			for (i=0; i < NUM_OF_CLIENTS; i++) {
-				if (getSocket(*socketArray(i)) == sock) {
-					
-					break;
-					
-				}//END IF
-			}//END FOR LOOP
-			
-			//printf("\ni: %d\n", i);
 			setName(socketArray(i), action + 9);
 			return getName(*socketArray(i));
+		} else if (strncmp(action + 4, "monitor", 7) == 0) {
+			if (strlen(action) == 13 && action[12] == '1') {
+				setMonitor(socketArray(i), TRUE);
+				monitorList(getSocket(*socketArray(i)), TRUE, FALSE);
+			} else if (strlen(action) == 13 && action[12] == '0') {
+				setMonitor(socketArray(i), FALSE);
+				setMonitor(monitorList(sock, FALSE, FALSE), FALSE);
+			}//END IF
+			return (int *)getMonitor(*socketArray(i));
 		}//END IF
 		
 		return NULL;

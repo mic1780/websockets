@@ -20,12 +20,21 @@
 #ifndef STRUCTS
 #define STRUCTS
 
+//the main structure that the program is based around
 typedef struct client {
 	int sock;
 	int active;
 	int isAdmin;
+	int isMonitor;
 	char *name;
 	pthread_t t;
 } clientStruct;
+
+//node structure for a potential change to linked list instead of static array
+typedef struct clientNode {
+	clientStruct client;
+	struct clientNode * next;
+	struct clientNode * prev;
+} clientNode;
 
 #endif
