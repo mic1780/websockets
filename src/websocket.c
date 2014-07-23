@@ -134,6 +134,8 @@ void *consoleCommand() {
 			//End kill
 		} else if (strncmp(cmd, "reload", 6) == 0) {
 			//do nothing (for the moment)
+		} else if (strncmp(cmd, "monitors", 8) == 0) {
+			listNodes(monitorList(0, 1, TRUE));
 		} else if (strncmp(cmd, "exit", 4) == 0) {
 			//Command: exit
 			printf("Shutting down server... \n");
@@ -177,8 +179,7 @@ void *serverStart() {
 		holder = createISIHolder(clientSocket, "init", 0);
 		i = (int)doFunction("alterStruct", holder);
 		destroyHolder(holder, 3);
-		//i = (int)alterStruct(clientSocket, "init");
-		printf("setSocket gave socket #%d a value of %d\n", clientSocket, getSocket(*socketArray(i)));
+		//printf("setSocket gave socket #%d a value of %d\n", clientSocket, getSocket(*socketArray(i)));
 		printf("Client %d connected\n", clientSocket);
 		pthread_create(&((socketArray(i))->t), NULL, clientThread, socketArray(i));
 	}//END WHILE LOOP
@@ -324,8 +325,8 @@ void *clientThread (void *s) {
 			destroyHolder(holder, 2);
 			
 			j=0;
-			while (monitorList(j, FALSE, TRUE) != NULL) {
-				holder =	createISIHolder(getSocket(*monitorList(j, FALSE, TRUE)), writeBuffer, strlen(writeBuffer));
+			while (monitorList(j, 1, TRUE) != NULL) {
+				holder =	createISIHolder(getSocket(monitorList(j, 1, TRUE)->client), writeBuffer, strlen(writeBuffer));
 				doFunction("sendMessage", holder);
 				destroyHolder(holder, 3);
 				j++;

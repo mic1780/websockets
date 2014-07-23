@@ -82,8 +82,46 @@ clientStruct * socketArray(int position) {
 	return &temp[position];
 }//END FUNCTION
 
-clientNode * createNode(clientNode * node, int sock) {
-	//clientNode * next =	NULL;
+clientNode * findNode(clientNode * head, int sock, int sockIsIndex) {
+	int i;
+	clientNode * ptr = NULL;
+	
+	if (head == NULL)
+		return NULL;
+	
+	ptr = head;
+	
+	//when we want to get a specific index in the linked list, this block is run
+	if (sockIsIndex) {
+		//if (sock >= size) {
+			//return NULL;
+		//}//END IF
+		for (i=0; i < sock; i++) {
+			if (ptr == NULL)
+				break;
+			ptr =	ptr->next;
+		}//END FOR LOOP
+		return ptr;
+	}//END IF
+	
+	//when we are looking for a specific socket in the list, this block is run
+	while (ptr != NULL) {
+		if (getSocket(ptr->client) == sock)
+			return ptr;
+		ptr =	ptr->next;
+	}//END WHILE LOOP
+	
+	return NULL;
+}//END FUNCTION
+
+void createNode(clientNode ** head, int sock, int * size) {
+	clientNode * node =	NULL;
+	if (*head == NULL) {
+		node = NULL;
+	} else {
+		node = *head;
+	}
+	
 	
 	if (node == NULL) {
 		node =			malloc(sizeof(clientNode));
@@ -91,110 +129,88 @@ clientNode * createNode(clientNode * node, int sock) {
 		setActive(&(node->client), TRUE);
 		node->next =	NULL;
 		node->prev =	NULL;
+		*size++;
+		*head = node;
+	} else {
+		createNode(&((*head)->prev->next), sock, size);
+		(*head)->prev->next->prev = (*head)->prev;
+		(*head)->prev =	node->prev->next;
 	}//END IF
 	
-	return node;
-		
 }//END FUNCTION
 
-clientStruct * monitorList(int sock, int canCreate, int sockIsIndex) {
+void destroyNode(clientNode ** head, int sock, int * size) {
+	clientNode * ptr = NULL;
+	
+	if (head == NULL)
+		return head;
+	
+	ptr = *head;
+	while (ptr != NULL) {
+		if (getSocket(ptr->client) == sock) {
+			if (ptr->prev->next == NULL) {
+				//first node is it
+				*head = (*head)->next;
+				if (*head != NULL) {
+					(*head)->prev =	ptr->prev;
+				}//END IF
+			} else {
+				ptr->prev->next = ptr->next;
+			}//END IF
+			free(ptr);
+			*size--;
+			return;
+		}//END IF
+		ptr =	ptr->next;
+	}//END WHILE LOOP
+	
+	if (ptr == NULL) {
+		printf("\nWARNING: Could not find socket in node list: %d\n\n", sock);
+		return;
+	}//END IF
+}//END FUNCTION
+
+void listNodes(clientNode * head) {
+	if (head == NULL) {
+		printf("\nList has no nodes\n\n");
+		return;
+	}//END IF
+	printf("\nList of nodes\n");
+	while (head != NULL) {
+		printf("Socket:\t%d\n", getSocket(head->client));
+		head = head->next;
+	}//END WHILE LOOP
+	printf("\n");
+}//END FUNCTION
+
+clientNode * monitorList(int sock, int method, int sockIsIndex) {
 	int i;
 	static clientNode * head =	NULL;
 	static int size =				0;
 	clientNode * ptr =			NULL;
 	
-	//if we dont have any nodes, create one if canCreate is TRUE and sockIsIndex is FALSE or return NULL
-	if (head == NULL) {
-		if (canCreate && sockIsIndex == FALSE) {
-			head =			createNode(head, sock);
-			head->prev =	head;
-			size++;
-		} else {
-			return NULL;
-		}//END IF
+	method =	method & 7;//only use first 3 bits;
+	
+	//find method
+	if (method & 1 == 1) {
+		ptr =	findNode(head, sock, sockIsIndex);
+		if (ptr != NULL)
+			return ptr;
 	}//END IF
 	
-	ptr =	head;
-	
-	//when we want to get a specific index in the linked list, this block is run
-	if (sockIsIndex) {
-		if (sock >= size) {
-			return NULL;
-		}//END IF
-		for (i=1; i < sock; i++) {
-			ptr =	ptr->next;
-		}//END FOR LOOP
-		return &(ptr->client);
+	//create method
+	if ((method & 2) == 2 && sockIsIndex == FALSE) {
+		createNode(&head, sock, &size);
+		if (head->prev == NULL)
+			head->prev = head;
 	}//END IF
 	
-	//when we are looking for a specific socket in the list, this block is run
-	while (ptr != NULL) {
-		if (getSocket(ptr->client) == sock)
-			return &(ptr->client);
-		ptr =	ptr->next;
-	}//END WHILE LOOP
-	
-	//we didnt find the right socket in the list, so lets check if we can add to the list.
-	if (canCreate == FALSE)
-		return NULL;
-	
-	ptr =	head->prev;
-	ptr->next =	createNode(ptr->next, sock);
-	ptr->next->prev = ptr;
-	ptr =	ptr->next;
-	head->prev =	ptr;
-	
-	return &(ptr->client);
-}//END FUNCTION
-
-clientStruct * clientList(int sock, int canCreate, int sockIsIndex) {
-	int i;
-	static clientNode * head =	NULL;
-	static int size =				0;
-	clientNode * ptr =			NULL;
-	
-	//if we dont have any nodes, create one if canCreate is TRUE and sockIsIndex is FALSE or return NULL
-	if (head == NULL) {
-		if (canCreate && sockIsIndex == FALSE) {
-			head =			createNode(head, sock);
-			head->prev =	head;
-			size++;
-		} else {
-			return NULL;
-		}//END IF
+	//destroy method
+	if ((method & 4) == 4 && sockIsIndex == FALSE) {
+		destroyNode(&head, sock, &size);
 	}//END IF
 	
-	ptr =	head;
-	
-	//when we want to get a specific index in the linked list, this block is run
-	if (sockIsIndex) {
-		if (sock >= size) {
-			return NULL;
-		}//END IF
-		for (i=1; i < sock; i++) {
-			ptr =	ptr->next;
-		}//END FOR LOOP
-		return &(ptr->client);
-	}//END IF
-	
-	//when we are looking for a specific socket in the list, this block is run
-	while (ptr != NULL) {
-		if (getSocket(ptr->client) == sock)
-			return &(ptr->client);
-		ptr =	ptr->next;
-	}//END WHILE LOOP
-	
-	//we didnt find the right socket in the list, so lets check if we can add to the list.
-	if (canCreate == FALSE)
-		return NULL;
-	
-	ptr =	head->prev;
-	ptr->next =	createNode(ptr->next, sock);
-	ptr->next->prev = ptr;
-	ptr =	ptr->next;
-	head->prev =	ptr;
-	
-	return &(ptr->client);
+	return NULL;
 }//END FUNCTION
 
 //STRUCT HELPER FUNCTIONS
@@ -274,4 +290,8 @@ void * doFunction(char * fName, void ** argv) {
 	return returnVal;
 	
 }
+
+void testPrint(int line, char * func) {
+	printf("Function %s is on line %d.\n", func, line);
+}//END FUNCTION
 #endif

@@ -72,6 +72,10 @@ void *alterStruct(int sock, char *action) {
 			return (int *)-1;
 		}//END IF
 		
+		if (monitorList(sock, 1, FALSE) != NULL) {
+			monitorList(sock, 4, FALSE);
+		}//END IF
+		
 		shutdown(getSocket(*socketArray(i)), 2);
 		close(getSocket(*socketArray(i)));
 		
@@ -102,10 +106,10 @@ void *alterStruct(int sock, char *action) {
 		} else if (strncmp(action + 4, "monitor", 7) == 0) {
 			if (strlen(action) == 13 && action[12] == '1') {
 				setMonitor(socketArray(i), TRUE);
-				monitorList(getSocket(*socketArray(i)), TRUE, FALSE);
+				monitorList(getSocket(*socketArray(i)), 1 | 2, FALSE);
 			} else if (strlen(action) == 13 && action[12] == '0') {
 				setMonitor(socketArray(i), FALSE);
-				setMonitor(monitorList(sock, FALSE, FALSE), FALSE);
+				monitorList(sock, 4, FALSE);
 			}//END IF
 			return (int *)getMonitor(*socketArray(i));
 		}//END IF

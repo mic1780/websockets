@@ -59,9 +59,14 @@ extern void initializeSockets(clientStruct * sock);
 
 extern clientStruct * socketArray(int position);
 
-//linked list prototypes (not in use yet)
-clientStruct * monitorList(int sock, int canCreate, int sockIsIndex);
-clientNode * createNode(clientNode * node, int sock);
+//list prototypes
+clientNode * monitorList(int sock, int method, int sockIsIndex);
+
+//linked list prototypes
+void createNode(clientNode ** head, int sock, int * size);
+void destroyNode(clientNode ** head, int sock, int * size);
+clientNode * findNode(clientNode * head, int sock, int sockIsIndex);
+void listNodes(clientNode * head);
 
 //sendMessage.c
 extern void *sendMessage(int sock, char *s, int len);
