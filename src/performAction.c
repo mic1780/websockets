@@ -39,6 +39,7 @@ void *performAction(char *cmd, clientStruct *s) {
 	int i;
 	char fullCmd[1024];
 	void ** holder;
+	clientNode * node = NULL;
 	
 	if (isFullCommand(cmd) == 1) {
 		if (strncmp(cmd, "test", 4) == 0) {
@@ -67,15 +68,17 @@ void *performAction(char *cmd, clientStruct *s) {
 			doFunction("sendMessage", holder);
 			destroyHolder(holder, 3);
 			
-			for (i=0; i < NUM_OF_CLIENTS; i++) {
-				if (getActive(*socketArray(i)) == 0 || getSocket(*s) == getSocket(*socketArray(i))) {
+			node =	socketArray(0, 1, TRUE);
+			while (node != NULL) {
+				if (getActive(*getClient(node)) == 0 || getSocket(*s) == getSocket(*getClient(node))) {
 					//do nothing
 				} else {
-					holder = createISIHolder(getSocket(*socketArray(i)), fullCmd, strlen(fullCmd));
+					holder =	createISIHolder(getSocket(*getClient(node)), fullCmd, strlen(fullCmd));
 					doFunction("sendMessage", holder);
 					destroyHolder(holder, 3);
 				}//END IF
-			}//END FOR LOOP
+				node =	node->next;
+			}//END WHILE LOOP
 		} else {
 			// do nothing! somehow it got in here and it does not belong
 			printf("\n\t **** ERROR: BAD ACTION ATTEMPTED ****\n");

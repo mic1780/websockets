@@ -56,14 +56,18 @@ int listActiveSockets() {
 	int i, j;
 	clientStruct client;
 	j=0;
+	clientNode * node =	NULL;
+	
+	node =	socketArray(0, 1, TRUE);
 	printf("\t* List of active sockets *\n\n");
-	for (i=0; i < NUM_OF_CLIENTS; i++) {
-		client = *socketArray(i);
+	while (node != NULL) {
+		client = *getClient(node);
 		if (getActive(client) == TRUE) {
 			printf("%d: Socket #%03d (%s)%c", i, getSocket(client), getName(client), (j % 2 == 0 ? '\t' : '\n'));
 			j++;
 		}//END IF
-	}//END FOR
+		node =	node->next;
+	}//END WHILE LOOP
 	if (j == 0)
 		printf("(no active sockets)");
 	if (j % 2 == 0)
@@ -123,10 +127,9 @@ void *consoleCommand() {
 				} else if (x == -1) {
 					printf("-1 entered. Aborting\n");
 				} else {
-					holder = createISIHolder(getSocket(*socketArray(x)), "close", 0);
+					holder = createISIHolder(getSocket(*socketArray(x, 1, TRUE)), "close", 0);
 					doFunction("alterStruct", holder);
 					destroyHolder(holder, 3);
-					//alterStruct(getSocket(*socketArray(x)), "close");
 				}//END IF
 			} else {
 				printf("\nNo active sockets to kill\n");
@@ -181,7 +184,8 @@ void *serverStart() {
 		destroyHolder(holder, 3);
 		//printf("setSocket gave socket #%d a value of %d\n", clientSocket, getSocket(*socketArray(i)));
 		printf("Client %d connected\n", clientSocket);
-		pthread_create(&((socketArray(i))->t), NULL, clientThread, socketArray(i));
+		tellMonitors(clientSocket, "connect", strlen("connect"));
+		pthread_create(&(getClient(socketArray(clientSocket, 1, FALSE))->t), NULL, clientThread, getClient(socketArray(clientSocket, 1, FALSE)));
 	}//END WHILE LOOP
 	
 	//pthread_join(thread1, NULL);
@@ -204,8 +208,11 @@ void *clientThread (void *s) {
 	SHA1Context sha;
 	base64_encodestate b64_ctx;
 	
-	char readBuffer[1024], writeBuffer[1024], masks[4];//the buffers
-	int bytes;//total received bytes.
+	char	readBuffer[1024],
+			secondaryBuffer[1024],
+			writeBuffer[1024],
+			masks[4];//the buffers
+	int bytes, secondaryBytes = 0;//total received bytes.
 	int flag = 0;//header or value: 0 = header, 1 = value
 	
 	void ** holder;//holder for arguments using createHolder functions
@@ -272,7 +279,15 @@ void *clientThread (void *s) {
 	memset(&readBuffer, '\0', sizeof(readBuffer));
 	
 	while(TRUE) {
-		bytes =	read(getSocket(cli), readBuffer, sizeof(readBuffer));
+		memset(&readBuffer, '\0', sizeof(readBuffer));
+		if (secondaryBytes == 0) {
+			bytes =	read(getSocket(cli), readBuffer, sizeof(readBuffer));
+		} else {
+			memcpy(readBuffer, secondaryBuffer, secondaryBytes);
+			bytes = secondaryBytes;
+			secondaryBytes = 0;
+		}
+		printf("bytes read: %d\n", bytes);
 		
 		//If the byteStream was closed or we receive a close byte, confirm close and release connection
 		if (bytes <= 0 || readBuffer[0] == '\x88') {
@@ -287,9 +302,18 @@ void *clientThread (void *s) {
 			destroyHolder(holder, 3);
 			break;
 		} else if (bytes > 0) {
-			/*Byte Check*
+			/*Byte Check*/
 			for (j=0; j < bytes; j++) {
-				printf("0x%08x\n", readBuffer[j]);
+				//printf("0x%08x\n", readBuffer[j]);
+				if (j == 0)
+					continue;
+				if (readBuffer[j] == '\x81' && readBuffer[j-1] == '\x00' && readBuffer[j-2] == '\x00') {
+					printf("only using %d of the %d bytes availible for this message\n", j, bytes);
+					secondaryBytes = bytes - j;
+					//printf("Potential second message attached to this message\nCopying it to the secondary buffer.\n");
+					memcpy(secondaryBuffer, readBuffer + j, secondaryBytes);
+					break;
+				}//END IF
 			}//END FOR LOOP
 			/**/
 			
@@ -324,13 +348,7 @@ void *clientThread (void *s) {
 			doFunction("performAction", holder);//this is where the magic happens
 			destroyHolder(holder, 2);
 			
-			j=0;
-			while (monitorList(j, 1, TRUE) != NULL) {
-				holder =	createISIHolder(getSocket(monitorList(j, 1, TRUE)->client), writeBuffer, strlen(writeBuffer));
-				doFunction("sendMessage", holder);
-				destroyHolder(holder, 3);
-				j++;
-			}//END WHILE LOOP
+			tellMonitors(getSocket(cli), writeBuffer, strlen(writeBuffer));
 			
 			//reset buffer to NULL bytes
 			memset(&writeBuffer, '\0', sizeof(writeBuffer));

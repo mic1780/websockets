@@ -60,26 +60,10 @@ void setMonitor(clientStruct * s, int bitFlag) {
 	s->isMonitor =	bitFlag;
 }//END FUNCTION
 
-void initializeSockets(clientStruct * sock) {
-	int i;
-	for (i=0; i < NUM_OF_CLIENTS; i++) {
-		setSocket(&sock[i], 0);
-		setActive(&sock[i], FALSE);
-		setMonitor(&sock[i], FALSE);
-		sock[i].name = NULL;
-	}//END FOR LOOP
-}//END FUNCTION
-
-clientStruct * socketArray(int position) {
-	static clientStruct temp[NUM_OF_CLIENTS];
-	static int initialized = 0;
-	
-	if (initialized == 0) {
-		printf("\n\n\t\t **** INITIALIZING temp ****\n\n");
-		initialized++;
-		initializeSockets(temp);
-	}
-	return &temp[position];
+clientStruct * getClient(clientNode * node) {
+	if (node == NULL)
+		return NULL;
+	return	&node->client;
 }//END FUNCTION
 
 clientNode * findNode(clientNode * head, int sock, int sockIsIndex) {
@@ -181,6 +165,37 @@ void listNodes(clientNode * head) {
 		head = head->next;
 	}//END WHILE LOOP
 	printf("\n");
+}//END FUNCTION
+
+clientNode * socketArray(int sock, int method, int sockIsIndex) {
+	int i;
+	static clientNode * head =	NULL;
+	static int size =				0;
+	clientNode * ptr =			NULL;
+	
+	method =	method & 7;//only use first 3 bits;
+	
+	//find method
+	if (method & 1 == 1) {
+		ptr =	findNode(head, sock, sockIsIndex);
+		if (ptr != NULL)
+			return ptr;
+	}//END IF
+	
+	//create method
+	if ((method & 2) == 2 && sockIsIndex == FALSE) {
+		createNode(&head, sock, &size);
+		if (head->prev == NULL)
+			head->prev = head;
+		return head->prev;
+	}//END IF
+	
+	//destroy method
+	if ((method & 4) == 4 && sockIsIndex == FALSE) {
+		destroyNode(&head, sock, &size);
+	}//END IF
+	
+	return NULL;
 }//END FUNCTION
 
 clientNode * monitorList(int sock, int method, int sockIsIndex) {
@@ -290,6 +305,32 @@ void * doFunction(char * fName, void ** argv) {
 	return returnVal;
 	
 }
+
+void tellMonitors(int clientSocket, char * str, int len) {
+	clientNode * node =	NULL;
+	char * message = NULL;
+	void ** holder;
+	
+	node = monitorList(0, 1, TRUE);
+	if (node == NULL || len == 0)
+		return;
+	
+	message =	malloc(sizeof(char) * (7 + 7 + len + 1));
+	sprintf(message, "update %06d %s", clientSocket, str);
+	
+	while (node != NULL) {
+		holder = createISIHolder(getSocket(*getClient(node)), message, strlen(message));
+		doFunction("sendMessage", holder);
+		destroyHolder(holder, 3);
+		node =	node->next;
+	}//END WHILE LOOP
+	
+	memset(&message, '\0', sizeof(message));
+	free(message);
+	message =	NULL;
+	
+	return;
+}//END FUNCTION
 
 void testPrint(int line, char * func) {
 	printf("Function %s is on line %d.\n", func, line);

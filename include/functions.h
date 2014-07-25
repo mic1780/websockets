@@ -53,14 +53,13 @@ extern void setName(clientStruct * s, char * name);
 extern int getMonitor(clientStruct s);
 extern void setMonitor(clientStruct * s, int bitFlag);
 
+extern clientStruct * getClient(clientNode * node);
+
 extern void *alterStruct(int sock, char *action);
 
-extern void initializeSockets(clientStruct * sock);
-
-extern clientStruct * socketArray(int position);
-
 //list prototypes
-clientNode * monitorList(int sock, int method, int sockIsIndex);
+extern clientStruct * socketArray(int sock, int method, int sockIsIndex);
+extern clientNode * monitorList(int sock, int method, int sockIsIndex);
 
 //linked list prototypes
 void createNode(clientNode ** head, int sock, int * size);

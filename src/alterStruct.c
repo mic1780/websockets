@@ -43,32 +43,22 @@
  */
 void *alterStruct(int sock, char *action) {
 	int i = 0;
+	clientNode * node = NULL;
 	
 	//printf("sock: \"%d\"\taction: \"%s\"\n", sock, action);
 	
 	if (strcmp(action, "init") == 0) {
-		for (i=0; i < NUM_OF_CLIENTS; i++) {
-			
-			if (getActive(*socketArray(i)) == FALSE) {
-				break;
-			}
-			
-		}//END FOR LOOP
 		
-		setActive(socketArray(i), TRUE);
-		setSocket(socketArray(i), sock);
+		//create our node in our list
+		socketArray(sock, 1 | 2, FALSE);
+		//setActive(getClient(socketArray(i)), TRUE);
+		//setSocket(socketArray(i), sock);
 		
 		return (int *)i;
 	} else if (strcmp(action, "close") == 0) {
-		for (i=0; i < NUM_OF_CLIENTS; i++) {
-			
-			if (getSocket(*socketArray(i)) == sock) {
-				break;
-			}
-			
-		}//END FOR LOOP
+		node =	socketArray(sock, 1, FALSE);
 		
-		if (i == NUM_OF_CLIENTS) {
+		if (node == NULL) {
 			return (int *)-1;
 		}//END IF
 		
@@ -76,14 +66,14 @@ void *alterStruct(int sock, char *action) {
 			monitorList(sock, 4, FALSE);
 		}//END IF
 		
-		shutdown(getSocket(*socketArray(i)), 2);
-		close(getSocket(*socketArray(i)));
+		shutdown(getSocket(*getClient(node)), 2);
+		close(getSocket(*getClient(node)));
 		
-		setName(socketArray(i), NULL);
+		setName(getClient(node), NULL);
 		
-		setActive(socketArray(i), FALSE);
+		setActive(getClient(node), FALSE);
 		
-		setSocket(socketArray(i), 0);
+		setSocket(getClient(node), 0);
 		
 		return NULL;
 	} else if (strncmp(action, "set", 3) == 0) {
@@ -91,34 +81,29 @@ void *alterStruct(int sock, char *action) {
 		 * name
 		 * isAdmin
 		 */
+		node =	socketArray(sock, 1, FALSE);
+		if (node == NULL)
+			return NULL;
 		
-		//get the index of the socket requesting the action
-		for (i=0; i < NUM_OF_CLIENTS; i++) {
-			if (getSocket(*socketArray(i)) == sock) {
-				
-				break;
-				
-			}//END IF
-		}//END FOR LOOP
 		if (strncmp(action + 4, "name", 4) == 0) {
-			setName(socketArray(i), action + 9);
-			return getName(*socketArray(i));
+			setName(getClient(node), action + 9);
+			return getName(*getClient(node));
 		} else if (strncmp(action + 4, "monitor", 7) == 0) {
 			if (strlen(action) == 13 && action[12] == '1') {
-				setMonitor(socketArray(i), TRUE);
-				monitorList(getSocket(*socketArray(i)), 1 | 2, FALSE);
+				setMonitor(getClient(node), TRUE);
+				monitorList(getSocket(*getClient(node)), 1 | 2, FALSE);
 			} else if (strlen(action) == 13 && action[12] == '0') {
-				setMonitor(socketArray(i), FALSE);
+				setMonitor(getClient(node), FALSE);
 				monitorList(sock, 4, FALSE);
 			}//END IF
-			return (int *)getMonitor(*socketArray(i));
+			return (int *)getMonitor(*getClient(node));
 		}//END IF
 		
 		return NULL;
 	}//END IF
 	
 	printf("\n\nWe were able to alter struct\n\n");
-	printf("temp[%d]\n\tactive = %d\n\tsock = %d\n\n", i, getActive(*socketArray(i)), getSocket(*socketArray(i)));
+	//printf("temp[%d]\n\tactive = %d\n\tsock = %d\n\n", i, getActive(*socketArray(i)), getSocket(*socketArray(i)));
 	//printf("temp[%d]\n\tactive = %d\n\tsock = %d\n\n", i, temp[i].active, temp[i].sock);
 	return NULL;
 }//END FUNCTION
