@@ -53,9 +53,9 @@
 static char ipAddress[16];
 
 int listActiveSockets() {
-	int i, j;
+	int i;
 	clientStruct client;
-	j=0;
+	i=0;
 	clientNode * node =	NULL;
 	
 	node =	socketArray(0, 1, TRUE);
@@ -63,18 +63,18 @@ int listActiveSockets() {
 	while (node != NULL) {
 		client = *getClient(node);
 		if (getActive(client) == TRUE) {
-			printf("%d: Socket #%03d (%s)%c", i, getSocket(client), getName(client), (j % 2 == 0 ? '\t' : '\n'));
-			j++;
+			printf("%d: Socket #%03d (%s)%c", i+1, getSocket(client), getName(client), (i % 2 == 0 ? '\t' : '\n'));
+			i++;
 		}//END IF
 		node =	node->next;
 	}//END WHILE LOOP
-	if (j == 0)
+	if (i == 0)
 		printf("(no active sockets)");
-	if (j % 2 == 0)
+	if (i % 2 == 0)
 		printf("\n");
 	
 	printf("\n\t* End of list *\n");
-	return j;
+	return i;
 }//END FUNCTION
 
 void printCommandList() {

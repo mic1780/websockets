@@ -52,7 +52,7 @@ int main(void) {
 	SQLAllocHandle(SQL_HANDLE_DBC, env, &dbc);
 	
 	/* connect to the data source */
-	ret =	SQLDriverConnect(dbc, NULL, "DSN=localdb;", SQL_NTS, NULL, 0, NULL, SQL_DRIVER_COMPLETE);
+	ret =	SQLDriverConnect(dbc, NULL, "DSN=local;", SQL_NTS, NULL, 0, NULL, SQL_DRIVER_COMPLETE);
 	if (SQL_SUCCEEDED(ret)) {
 		printf("Connected\n");
 		if (ret == SQL_SUCCESS_WITH_INFO) {
@@ -62,7 +62,9 @@ int main(void) {
 		
 		SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt);
 		
-		SQLTables(stmt, NULL, 0, NULL, 0, NULL, 0, "TABLE", SQL_NTS);
+		//SQLExecDirect(stmt, "SELECT TOP 1000 * FROM tbl_Users", SQL_NTS);
+		//SQLTables(stmt, NULL, 0, NULL, 0, NULL, 0, (SQLCHAR*)"TABLE", SQL_NTS);
+		SQLColumns(stmt, NULL, 0, NULL, 0, (SQLCHAR*)"tbl_Users", SQL_NTS, NULL, 0);
 		SQLNumResultCols(stmt, &columns);
 		while (SQL_SUCCEEDED(ret = SQLFetch(stmt))) {
 			SQLUSMALLINT i;

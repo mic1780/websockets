@@ -44,6 +44,8 @@
 void *alterStruct(int sock, char *action) {
 	int i = 0;
 	clientNode * node = NULL;
+	char * msg = NULL;
+	void ** holder = NULL;
 	
 	//printf("sock: \"%d\"\taction: \"%s\"\n", sock, action);
 	
@@ -51,8 +53,7 @@ void *alterStruct(int sock, char *action) {
 		
 		//create our node in our list
 		socketArray(sock, 1 | 2, FALSE);
-		//setActive(getClient(socketArray(i)), TRUE);
-		//setSocket(socketArray(i), sock);
+		tellMonitors(sock, "set active 1", strlen("set active 1"));
 		
 		return (int *)i;
 	} else if (strcmp(action, "close") == 0) {
@@ -66,14 +67,15 @@ void *alterStruct(int sock, char *action) {
 			monitorList(sock, 4, FALSE);
 		}//END IF
 		
-		shutdown(getSocket(*getClient(node)), 2);
+		//shutdown(getSocket(*getClient(node)), 2);
 		close(getSocket(*getClient(node)));
 		
 		setName(getClient(node), NULL);
 		
-		setActive(getClient(node), FALSE);
+		socketArray(getSocket(*getClient(node)), 4, FALSE);//destroy the node
+		//setActive(getClient(node), FALSE);
 		
-		setSocket(getClient(node), 0);
+		//setSocket(getClient(node), 0);
 		
 		return NULL;
 	} else if (strncmp(action, "set", 3) == 0) {
@@ -92,6 +94,22 @@ void *alterStruct(int sock, char *action) {
 			if (strlen(action) == 13 && action[12] == '1') {
 				setMonitor(getClient(node), TRUE);
 				monitorList(getSocket(*getClient(node)), 1 | 2, FALSE);
+				i=0;
+				node = socketArray(i, 1, TRUE);
+				msg = malloc(sizeof(char) * 101);
+				while(node != NULL) {
+					sprintf(msg, "update %06d %s %d", getSocket(*getClient(node)), "set active", getActive(*getClient(node)));
+					holder = createISIHolder(getSocket(*getClient(monitorList(sock, 1, FALSE))), msg, strlen(msg));
+					doFunction("sendMessage", holder);
+					destroyHolder(holder, 3);
+					memset(msg, '\0', sizeof(char) * 101);
+					i++;
+					node = socketArray(i, 1, TRUE);
+				}//END WHILE LOOP
+				memset(msg, '\0', sizeof(msg));
+				free(msg);
+				msg = NULL;
+				node = socketArray(sock, 1, FALSE);
 			} else if (strlen(action) == 13 && action[12] == '0') {
 				setMonitor(getClient(node), FALSE);
 				monitorList(sock, 4, FALSE);

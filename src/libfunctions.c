@@ -111,6 +111,7 @@ void createNode(clientNode ** head, int sock, int * size) {
 		node =			malloc(sizeof(clientNode));
 		setSocket(&(node->client), sock);
 		setActive(&(node->client), TRUE);
+		node->client.name = NULL;
 		node->next =	NULL;
 		node->prev =	NULL;
 		*size++;

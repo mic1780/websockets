@@ -216,7 +216,7 @@ if [ "$COMPILE_FUNCTION" == "1" ]; then
 			echo "Do not compile $i here. (Use ./compile.sh -e $i)"
 		else
 			echo "Generating $i.o"
-			gcc -c -o objects/$i.o src/$i.c
+			gcc -c -fPIC -o objects/$i.o src/$i.c
 		fi
 	done
 
@@ -236,7 +236,7 @@ if [ "$COMPILE_LIB" == "1" ]; then
 	
 	for i in ${COMPILE_LIB_NAMES[@]}; do
 		echo "Generating $i.o"
-		gcc -c -o tmp/$i.o src/$i.c
+		gcc -c -fPIC -o tmp/$i.o src/$i.c
 		if [ $(contains "`echo ${DEFAULT_FUNCTION_NAMES[@]}`" "$i") == "1" ]; then
 			echo "Do not compile $i here. (Use ./compile.sh -f $i)"
 		elif [ $(contains "`echo ${DEFAULT_EXEC_NAMES[@]}`" "$i") == "1" ]; then
