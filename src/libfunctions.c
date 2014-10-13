@@ -140,9 +140,13 @@ void destroyNode(clientNode ** head, int sock, int * size) {
 					(*head)->prev =	ptr->prev;
 				}//END IF
 			} else {
+				if ((*head)->prev->client.sock == ptr->client.sock) {
+					(*head)->prev = ptr->prev;
+				}//END IF
 				ptr->prev->next = ptr->next;
 			}//END IF
 			free(ptr);
+			ptr = NULL;
 			*size--;
 			return;
 		}//END IF

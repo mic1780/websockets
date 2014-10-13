@@ -182,8 +182,8 @@ void *serverStart() {
 		holder = createISIHolder(clientSocket, "init", 0);
 		i = (int)doFunction("alterStruct", holder);
 		destroyHolder(holder, 3);
-		//printf("setSocket gave socket #%d a value of %d\n", clientSocket, getSocket(*socketArray(i)));
 		printf("Client %d connected\n", clientSocket);
+		//printf("setSocket gave socket #%d a value of %d\n", clientSocket, getSocket(*getClient(socketArray(clientSocket, 1, FALSE))));
 		tellMonitors(clientSocket, "connect", strlen("connect"));
 		pthread_create(&(getClient(socketArray(clientSocket, 1, FALSE))->t), NULL, clientThread, getClient(socketArray(clientSocket, 1, FALSE)));
 	}//END WHILE LOOP
@@ -287,7 +287,11 @@ void *clientThread (void *s) {
 			bytes = secondaryBytes;
 			secondaryBytes = 0;
 		}
-		printf("bytes read: %d\n", bytes);
+		
+		//printf("bytes read: %d\n", bytes);
+		//for (i = 0; i < bytes; i++) {
+			//printf("byte #%02d: 0x%08x\n", i, readBuffer[i]);
+		//}//END FOR LOOP
 		
 		//If the byteStream was closed or we receive a close byte, confirm close and release connection
 		if (bytes <= 0 || readBuffer[0] == '\x88') {
