@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dlfcn.h>
+#include <pthread.h>
 #include "../include/structs.h"
 #include "../include/constants.h"
 
@@ -114,7 +115,7 @@ void createNode(clientNode ** head, int sock, int * size) {
 		node->client.name = NULL;
 		node->next =	NULL;
 		node->prev =	NULL;
-		*size++;
+		(*size)++;
 		*head = node;
 	} else {
 		createNode(&((*head)->prev->next), sock, size);
@@ -131,26 +132,33 @@ void destroyNode(clientNode ** head, int sock, int * size) {
 		return head;
 	
 	ptr = *head;
+	
 	while (ptr != NULL) {
+		
 		if (getSocket(ptr->client) == sock) {
-			if (ptr->prev->next == NULL) {
-				//first node is it
-				*head = (*head)->next;
-				if (*head != NULL) {
-					(*head)->prev =	ptr->prev;
+			
+			//if its the first node, move head forward
+			if (getSocket((*head)->client) == sock) {
+				if (*size > 1) {
+					((*head)->next)->prev = (*head)->prev;
 				}//END IF
+				*head = (*head)->next;
 			} else {
-				if ((*head)->prev->client.sock == ptr->client.sock) {
+				if (ptr->next != NULL) {
+					ptr->next->prev = ptr->prev;
+				} else {
 					(*head)->prev = ptr->prev;
 				}//END IF
-				ptr->prev->next = ptr->next;
+				(ptr->prev)->next = ptr->next;
 			}//END IF
+			
 			free(ptr);
-			ptr = NULL;
-			*size--;
+			(*size)--;
 			return;
+			
 		}//END IF
-		ptr =	ptr->next;
+		
+		ptr = ptr->next;
 	}//END WHILE LOOP
 	
 	if (ptr == NULL) {
@@ -167,6 +175,7 @@ void listNodes(clientNode * head) {
 	printf("\nList of nodes\n");
 	while (head != NULL) {
 		printf("Socket:\t%d\n", getSocket(head->client));
+		printf("\tprev: %d\n\tnext: %d\n", getSocket(head->prev->client), (head->next != NULL ? getSocket(head->next->client) : -1));
 		head = head->next;
 	}//END WHILE LOOP
 	printf("\n");
@@ -176,15 +185,20 @@ clientNode * socketArray(int sock, int method, int sockIsIndex) {
 	int i;
 	static clientNode * head =	NULL;
 	static int size =				0;
+	static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 	clientNode * ptr =			NULL;
 	
 	method =	method & 7;//only use first 3 bits;
 	
+	pthread_mutex_lock(&mutex);
+	
 	//find method
 	if (method & 1 == 1) {
 		ptr =	findNode(head, sock, sockIsIndex);
-		if (ptr != NULL)
+		if (ptr != NULL) {
+			pthread_mutex_unlock(&mutex);
 			return ptr;
+		}//END IF
 	}//END IF
 	
 	//create method
@@ -192,13 +206,21 @@ clientNode * socketArray(int sock, int method, int sockIsIndex) {
 		createNode(&head, sock, &size);
 		if (head->prev == NULL)
 			head->prev = head;
+		
+		pthread_mutex_unlock(&mutex);
 		return head->prev;
 	}//END IF
 	
 	//destroy method
 	if ((method & 4) == 4 && sockIsIndex == FALSE) {
+		//printf("\nPRE-DELETE\n");
+		//listNodes(head);
 		destroyNode(&head, sock, &size);
+		//printf("POST-DELETE\n");
+		//listNodes(head);
 	}//END IF
+	
+	pthread_mutex_unlock(&mutex);
 	
 	return NULL;
 }//END FUNCTION
