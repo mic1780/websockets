@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+//#include <pthread.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <unistd.h>
@@ -52,6 +53,8 @@ extern void setName(clientStruct * s, char * name);
 
 extern int getMonitor(clientStruct s);
 extern void setMonitor(clientStruct * s, int bitFlag);
+
+extern pthread_t * getThread(clientStruct s);
 
 extern clientStruct * getClient(clientNode * node);
 

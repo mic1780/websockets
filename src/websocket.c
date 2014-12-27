@@ -1,6 +1,6 @@
 /*
  *
- *   Copyright (C) 2014  Michael Cummins
+ *   Copyright (C) 2015  Michael Cummins
  *   License: GNUv2
  *   
  *   This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 /*
  *	@file: websocket.c
  * @author: Michael Cummins
- * @date: 5/19/2014 3:52PM EST
+ * @date: 12/26/2014 5:15PM EST
  * @compiler:	GCC
  * @32-bit: YES
  * @description:	This program implements a C version of websockets.
@@ -26,7 +26,7 @@
  *
  *	Websocket info
  * @supportedVersions:	13 (more later?)
- * @numberOfClients:		Dynamic (changable in "include/constants.h")
+ * @numberOfClients:		Dynamic (Linked-List used to manage clients)
  *	@clientsInside:		socketArray function (found in libfunctions.c)
  */
 
@@ -34,15 +34,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <math.h>
+
 #include <pthread.h>
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <errno.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <wait.h>
+
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <ifaddrs.h>
+
 #include "../include/sha1.h"
 #include "../include/base64.h"
 #include "../include/constants.h"
@@ -50,149 +53,115 @@
 #include "../include/functions.h"
 
 //GLOBALS
-static char ipAddress[16];
+pthread_t * consoleThread;
+serverStruct servers[10];
+pthread_mutex_t consoleLock;
+pthread_cond_t condLock;
 
-int listActiveSockets() {
+//PROTOTYPES
+void * server();
+void * client(void * s);
+void * console();
+char * getIPList(int retIndex);
+
+void closeServers();
+void closeConsoles();
+void closeClients();
+void closeMonitors();
+void shutdownInit();
+
+int main(int argc, char ** argv) {
+	//declare functions to run to clean up server (ensure clean server close)
+	atexit(closeServers);
+	atexit(closeConsoles);
+	atexit(closeClients);
+	atexit(closeMonitors);
+	atexit(shutdownInit);
+	
 	int i;
-	clientStruct client;
-	i=0;
-	clientNode * node =	NULL;
+	for (i=0; i < 10; i++) {
+		servers[i].name = NULL;
+		servers[i].port = 0;
+	}//END FOR LOOP
 	
-	node =	socketArray(0, 1, TRUE);
-	printf("\t* List of active sockets *\n\n");
-	while (node != NULL) {
-		client = *getClient(node);
-		if (getActive(client) == TRUE) {
-			printf("%d: Socket #%03d (%s)%c", i+1, getSocket(client), getName(client), (i % 2 == 0 ? '\t' : '\n'));
-			i++;
-		}//END IF
-		node =	node->next;
-	}//END WHILE LOOP
-	if (i == 0)
-		printf("(no active sockets)");
-	if (i % 2 == 0)
-		printf("\n");
-	
-	printf("\n\t* End of list *\n");
-	return i;
-}//END FUNCTION
-
-void printCommandList() {
-	printf("\n");
-	printf("\t**** Console Command list ****\n");
-	printf("exit - End this program.\n");
-	printf("help - Displays this command list\n");
-	printf("kill - Lists all active sockets then prompts for which one to close.\n");
-	printf("list - List all active sockets\n");
-}//END FUNCTION
-
-
-//FUNCTIONS
-int main(void) {
-	int x = 0;
-	char cmd[1024];
-	sprintf(ipAddress, "%d.%d.%d.%d", IP_OCTET_1, IP_OCTET_2, IP_OCTET_3, IP_OCTET_4);
-	//strcpy(ipAddress, "127.0.0.1");//<------ENTER YOUR INTERNAL IP HERE
-	pthread_t serverThread;
-	pthread_create(&serverThread, NULL, consoleCommand, NULL);
-	serverStart();
+	pthread_mutex_init(&consoleLock, NULL);
+	pthread_cond_init(&condLock, NULL);
+	consoleThread = malloc(sizeof(pthread_t));
+	//allow us console control without locking up the server.
+	//pthread_create(consoleThread, NULL, console, NULL);
+	//server();
+	//pthread_create(consoleThread, NULL, server, NULL);
+	console();
 	return 0;
-}
+}//END main
 
-void *consoleCommand() {
-	int activeCount;
-	long x;
-	char cmd[100];
-	void ** holder;
-	while (TRUE) {
-		
-		printf("Console is ready for the next command.\n");
-		memset(&cmd, '\0', sizeof(cmd)-1);
-		read(STDIN_FILENO, cmd, sizeof(cmd));
-		
-		if (strncmp(cmd, "list", 4) == 0) {
-			//Command: list
-			listActiveSockets();
-			//End list
-		} else if (strncmp(cmd, "kill", 4) == 0) {
-			//Command: kill
-			activeCount = listActiveSockets();
-			if (activeCount > 0) {
-				printf("\nWhich socket would you like to kill? (-1 to abort kill)\n");
-				memset(&cmd, '\0', sizeof(cmd)-1);
-				read(STDIN_FILENO, cmd, sizeof(cmd));
-				x =	strtol(cmd, NULL, 10);
-				if (x < -1) {
-					printf("bad number, aborting!\n");
-				} else if (x == -1) {
-					printf("-1 entered. Aborting\n");
-				} else {
-					holder = createISIHolder(getSocket(*socketArray(x, 1, TRUE)), "close", 0);
-					doFunction("alterStruct", holder);
-					destroyHolder(holder, 3);
-				}//END IF
-			} else {
-				printf("\nNo active sockets to kill\n");
-			}//END IF
-			//End kill
-		} else if (strncmp(cmd, "reload", 6) == 0) {
-			//do nothing (for the moment)
-		} else if (strncmp(cmd, "monitors", 8) == 0) {
-			listNodes(monitorList(0, 1, TRUE));
-		} else if (strncmp(cmd, "exit", 4) == 0) {
-			//Command: exit
-			printf("Shutting down server... \n");
-			exit(0);
-			//End exit
-		} else {
-			//Command: (command unknow situation)
-			printf("Invalid command.\n");
-			printCommandList();
-			//End (command unknow situation)
-		}//END IF
-		printf("\n");
-		
-	}//END WHILE LOOP
-	return NULL;
-}//END FUNCTION
-
-void *serverStart() {
-	int i;
-	int s;
-	int rc;
+void * server() {
+	pthread_mutex_lock(&consoleLock);
+	int rc,
+	    serverSocket;
 	struct sockaddr_in serverInfo;
-	struct sockaddr clientInfo;
-	int clientSocket, clientInfoLen;
-	pthread_t thread1;
+	struct sockaddr_in clientInfo;
+	int clientSocket,
+	    clientInfoLength;
+	
 	void ** holder;
+	
+	//printf("Enter a name for this server.\n");
+	//scanf("%s", servers[0]->name);
+	int serverNumber = (servers[0].name == NULL ? 0 : 1);
+	int optionNumber = 0;
+	
+	//set server name
+	servers[serverNumber].name = malloc(sizeof(char) * 5);
+	strcpy(servers[serverNumber].name, "Test");
+	
+	//set server ip to use
+	printf("Please select the option number that has the IP address you want to use for this server.\n\n");
+	getIPList(0);
+	scanf("%d", &optionNumber);
+	strcpy(servers[serverNumber].ip, getIPList(optionNumber));
+	
+	//set server port to use
+	servers[serverNumber].port = CONNECTION_PORT + serverNumber;
 	
 	memset(&serverInfo, 0, sizeof(serverInfo));
-	serverInfo.sin_family = AF_INET;
-	serverInfo.sin_addr.s_addr =	inet_addr(ipAddress);
-	serverInfo.sin_port =	htons(CONNECTION_PORT);
+	serverInfo.sin_family =      AF_INET;
+	serverInfo.sin_addr.s_addr = inet_addr("127.0.0.1");
+	serverInfo.sin_port =        htons(CONNECTION_PORT);//to be changed to user entered port / CONNECTION_PORT + active servers
 	
-	s =	socket(AF_INET, SOCK_STREAM, 0);
-	rc =	bind(s, (struct sockaddr *) &serverInfo, sizeof(serverInfo));
-	listen(s, 10);
+	serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+	rc = bind(serverSocket, (struct sockaddr *) &serverInfo, sizeof(serverInfo));
+	listen(serverSocket, 10);
+	
 	printf("Server Started.\n");
+	printf("Name: %s\nHost: %s\nPort: %d\n", servers[serverNumber].name, servers[serverNumber].ip, servers[serverNumber].port);
 	
-	clientInfoLen =	sizeof(clientInfo);
+	pthread_detach(pthread_self());
+	//clientInfoLength = sizeof(clientInfoLength);
+	
+	pthread_mutex_unlock(&consoleLock);
 	while (TRUE) {
-		clientSocket =	accept(s, &clientInfo, &clientInfoLen);
+		clientSocket = accept(serverSocket, &clientInfo, &clientInfoLength);
+		
 		holder = createISIHolder(clientSocket, "init", 0);
-		i = (int)doFunction("alterStruct", holder);
+		doFunction("alterStruct", holder);
 		destroyHolder(holder, 3);
+		
 		printf("Client %d connected\n", clientSocket);
-		//printf("setSocket gave socket #%d a value of %d\n", clientSocket, getSocket(*getClient(socketArray(clientSocket, 1, FALSE))));
 		tellMonitors(clientSocket, "connect", strlen("connect"));
-		pthread_create(&(getClient(socketArray(clientSocket, 1, FALSE))->t), NULL, clientThread, getClient(socketArray(clientSocket, 1, FALSE)));
+		
+		pthread_create(getThread(*getClient(socketArray(clientSocket, 1, FALSE))), NULL, client, getClient(socketArray(clientSocket, 1, FALSE)));
 	}//END WHILE LOOP
 	
-	//pthread_join(thread1, NULL);
 	return NULL;
 }
 
-void *clientThread (void *s) {
+//void * client(void * s) {
+	
+//}
+
+//OLD client function (will be rewritten)
+void * client (void *s) {
 	int i, j, pos, maskIndex;
 	
 	clientStruct cli =	*(clientStruct *)s;
@@ -364,3 +333,220 @@ void *clientThread (void *s) {
 	return NULL;
 }//END FUNCTION
 
+/**
+void * console() {
+	int activeCount;
+	long x;
+	char cmd[101];
+	void ** holder;
+	
+	printf("Console activated.\n");
+	while (TRUE) {
+		memset(&cmd, '\0', sizeof(cmd)-1);
+		printf("Console is ready for the next command.\n");
+		read(STDIN_FILENO, cmd, sizeof(cmd));
+		
+		printf("Invalid command.\n");
+		//printCommandList();
+		
+		printf("\n");
+	}//END WHILE LOOP
+	return NULL;
+}
+/**/
+
+void * console() {
+	int activeCount;
+	long x;
+	char cmd[101];
+	void ** holder;
+	
+	printf("Console activated.\n");
+	
+	while (TRUE) {
+		
+		memset(&cmd, '\0', sizeof(cmd)-1);
+		pthread_mutex_lock(&consoleLock);
+		printf("Console is ready for the next command.\n");
+		read(STDIN_FILENO, cmd, sizeof(cmd));
+		pthread_mutex_unlock(&consoleLock);
+		
+		if (strncmp(cmd, "new server", 10) == 0) {
+			activeCount = (servers[0].name == NULL ? 0 : 1);
+			pthread_create(&servers[activeCount].t, NULL, server, NULL);
+			//condLock if needed
+		} else if (strncmp(cmd, "list", 4) == 0) {
+			//Command: list
+			listActiveSockets();
+			//End list
+		} else if (strncmp(cmd, "kill", 4) == 0) {
+			//Command: kill
+			activeCount = listActiveSockets();
+			if (activeCount > 0) {
+				printf("\nWhich socket would you like to kill? (-1 to abort kill)\n");
+				memset(&cmd, '\0', sizeof(cmd)-1);
+				read(STDIN_FILENO, cmd, sizeof(cmd));
+				x =	strtol(cmd, NULL, 10);
+				if (x < -1) {
+					printf("bad number, aborting!\n");
+				} else if (x == -1) {
+					printf("-1 entered. Aborting\n");
+				} else {
+					holder = createISIHolder(getSocket(*socketArray(x, 1, TRUE)), "close", 0);
+					doFunction("alterStruct", holder);
+					destroyHolder(holder, 3);
+				}//END IF
+			} else {
+				printf("\nNo active sockets to kill\n");
+			}//END IF
+			//End kill
+		} else if (strncmp(cmd, "reload", 6) == 0) {
+			//do nothing (for the moment)
+		} else if (strncmp(cmd, "monitors", 8) == 0) {
+			listNodes(monitorList(0, 1, TRUE));
+		} else if (strncmp(cmd, "exit", 4) == 0) {
+			//Command: exit
+			//printf("Shutting down server... \n");
+			exit(0);
+			//End exit
+		} else {
+			//Command: (command unknow situation)
+			printf("Invalid command.\n");
+			getCommandList();
+			//End (command unknow situation)
+		}//END IF
+		printf("\n");
+		
+		//printf("Number of active servers: %d\n", (servers[0].name == NULL ? 0 : 1));
+	}//END WHILE LOOP
+	return NULL;
+}//END FUNCTION
+
+void getCommandList() {
+	printf("\n");
+	printf("\t**** Console Command list ****\n");
+	printf("exit - End this program.\n");
+	printf("help - Displays this command list\n");
+	printf("kill - Lists all active sockets then prompts for which one to close.\n");
+	printf("list - List all active sockets\n");
+}//END FUNCTION
+
+int listActiveSockets() {
+	int i;
+	clientStruct client;
+	i=0;
+	clientNode * node =	NULL;
+	
+	node =	socketArray(0, 1, TRUE);
+	printf("\t* List of active sockets *\n\n");
+	while (node != NULL) {
+		client = *getClient(node);
+		if (getActive(client) == TRUE) {
+			printf("%d: Socket #%03d (%s)%c", i+1, getSocket(client), getName(client), (i % 2 == 0 ? '\t' : '\n'));
+			i++;
+		}//END IF
+		node =	node->next;
+	}//END WHILE LOOP
+	if (i == 0)
+		printf("(no active sockets)");
+	if (i % 2 == 0)
+		printf("\n");
+	
+	printf("\n\t* End of list *\n");
+	return i;
+}//END FUNCTION
+
+char * getIPList(int retIndex) {
+	int i;
+	struct ifaddrs * ifaddr, *ifa;
+	int family, s;
+	char host[NI_MAXHOST];
+	
+	if (getifaddrs(&ifaddr) == -1) {
+		perror("getifaddrs");
+		exit(1);
+	}//END IF
+	
+	if (retIndex == 0)
+		printf("**** IP SELECTION LIST***\n");
+	
+	i = 1;
+	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+		if (ifa->ifa_addr == NULL) {
+			continue;
+		}//END IF
+		
+		family = ifa->ifa_addr->sa_family;
+		
+		if (__ISWINDOWS__ == 0 && retIndex == 0) {
+		printf("%-8s %s (%d)\n",
+			ifa->ifa_name,
+			(family == AF_INET) ? "AF_INET" :
+			(family == AF_INET6) ? "AF_INET6" : "???",
+			family);
+		}
+		if (family == AF_INET) {// || family == AF_INET6) {
+			
+			s = getnameinfo(ifa->ifa_addr,
+				(family == AF_INET ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6)),
+				host, NI_MAXHOST,
+				NULL, 0, NI_NUMERICHOST);
+			
+			if (s != 0) {
+				printf("getnameinfo() failed.\n");
+				exit(1);
+			}//END IF
+			
+			if (retIndex > 0) {
+				if (i == retIndex) {
+					freeifaddrs(ifaddr);
+					return host;
+				}//END IF
+			} else {
+				printf("Option %d:\tAddress: <%s>\n", i, host);
+			}//END IF
+			
+			//printf("Interface: <%-8s>\n", ifa->ifa_name);
+			//printf("\tAddress: <%s>\n", host);
+			//printf("\n");
+			i++;
+		}//END IF
+		
+	}//END FOR LOOP
+	
+	freeifaddrs(ifaddr);
+	return NULL;
+}//END CHAR
+
+//BELOW ARE FUNCTIONS TO BE RUN WHEN PROGRAM ENDS
+
+void closeServers() {
+	int i;
+	printf("Closing all servers\n");
+	for (i = 0; i < 10; i++) {
+		if (servers[i].name == NULL) {
+			continue;
+		}//END IF
+		printf("Closing server: %s\n", servers[i].name);
+		memset(&servers[i].name, '\0', sizeof(servers[i].name)-1);
+		free(servers[i].name);
+		servers[i].name = NULL;
+		pthread_cancel(servers[i].t);
+	}//END FOR LOOP
+}//END closeServers
+
+void closeConsoles() {
+	
+}//END closeConsoles
+
+void closeClients() {
+	
+}//END closeClients
+
+void closeMonitors() {
+	
+}//END closeMonitors
+
+void shutdownInit() {
+	printf("exiting program...\n\n");
+}

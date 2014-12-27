@@ -18,7 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dlfcn.h>
-#include <pthread.h>
+//#include <pthread.h>
 #include "../include/structs.h"
 #include "../include/constants.h"
 
@@ -60,6 +60,10 @@ int getMonitor(clientStruct s) {
 void setMonitor(clientStruct * s, int bitFlag) {
 	s->isMonitor =	bitFlag;
 }//END FUNCTION
+
+pthread_t * getThread(clientStruct s) {
+	return &(s.t);
+}//END PTHREAD_T
 
 clientStruct * getClient(clientNode * node) {
 	if (node == NULL)

@@ -20,6 +20,13 @@
 #ifndef STRUCTS
 #define STRUCTS
 
+typedef struct server {
+	char * name;
+	char ip[16];
+	int port;
+	pthread_t t;
+} serverStruct;
+
 //the main structure that the program is based around
 typedef struct client {
 	int sock;
