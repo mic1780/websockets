@@ -53,10 +53,11 @@
 #include "../include/functions.h"
 
 //GLOBALS
-pthread_t * consoleThread;
+pthread_t * serverThread;
 serverStruct servers[10];
 pthread_mutex_t consoleLock;
 pthread_cond_t condLock;
+int isRunning;
 
 //PROTOTYPES
 void * server();
@@ -71,27 +72,41 @@ void closeMonitors();
 void shutdownInit();
 
 int main(int argc, char ** argv) {
-	//declare functions to run to clean up server (ensure clean server close)
-	atexit(closeServers);
-	atexit(closeConsoles);
-	atexit(closeClients);
-	atexit(closeMonitors);
-	atexit(shutdownInit);
-	
 	int i;
 	for (i=0; i < 10; i++) {
 		servers[i].name = NULL;
 		servers[i].port = 0;
 	}//END FOR LOOP
 	
+	isRunning = TRUE;
 	pthread_mutex_init(&consoleLock, NULL);
 	pthread_cond_init(&condLock, NULL);
-	consoleThread = malloc(sizeof(pthread_t));
+	serverThread = malloc(sizeof(pthread_t));
+	
 	//allow us console control without locking up the server.
-	//pthread_create(consoleThread, NULL, console, NULL);
-	//server();
-	//pthread_create(consoleThread, NULL, server, NULL);
+	/**
+	pthread_mutex_lock(&consoleLock);
+	pthread_create(&(*serverThread), NULL, console, NULL);
+	pthread_cond_wait(&condLock, &consoleLock);
+	pthread_mutex_unlock(&consoleLock);
+	/**/
+	
+	pthread_mutex_lock(&consoleLock);
+	pthread_create(&(*serverThread), NULL, server, NULL);
+	pthread_cond_wait(&condLock, &consoleLock);
+	pthread_mutex_unlock(&consoleLock);
 	console();
+	
+	pthread_mutex_destroy(&consoleLock);
+	pthread_cond_destroy(&condLock);
+	
+	//declare functions to run to clean up server (ensure clean server close)
+	//these are at the end because they would not run if a client tries to connect
+	atexit(closeServers);
+	atexit(closeClients);
+	atexit(closeMonitors);
+	atexit(shutdownInit);
+	
 	return 0;
 }//END main
 
@@ -106,41 +121,38 @@ void * server() {
 	
 	void ** holder;
 	
-	//printf("Enter a name for this server.\n");
-	//scanf("%s", servers[0]->name);
-	int serverNumber = (servers[0].name == NULL ? 0 : 1);
 	int optionNumber = 0;
-	
-	//set server name
-	servers[serverNumber].name = malloc(sizeof(char) * 5);
-	strcpy(servers[serverNumber].name, "Test");
+	char ip[16];
+	int port;
 	
 	//set server ip to use
 	printf("Please select the option number that has the IP address you want to use for this server.\n\n");
 	getIPList(0);
 	scanf("%d", &optionNumber);
-	strcpy(servers[serverNumber].ip, getIPList(optionNumber));
+	strcpy(ip, getIPList(optionNumber));
 	
-	//set server port to use
-	servers[serverNumber].port = CONNECTION_PORT + serverNumber;
+	printf("Enter a port you want the server to use.\n");
+	scanf("%d", &port);
+	
 	
 	memset(&serverInfo, 0, sizeof(serverInfo));
 	serverInfo.sin_family =      AF_INET;
-	serverInfo.sin_addr.s_addr = inet_addr("127.0.0.1");
-	serverInfo.sin_port =        htons(CONNECTION_PORT);//to be changed to user entered port / CONNECTION_PORT + active servers
+	//serverInfo.sin_addr.s_addr = inet_addr("127.0.0.1");
+	//serverInfo.sin_port =        htons(CONNECTION_PORT);//to be changed to user entered port / CONNECTION_PORT + active servers
+	serverInfo.sin_addr.s_addr = inet_addr(ip);
+	serverInfo.sin_port =        htons(port);//to be changed to user entered port / CONNECTION_PORT + active servers
 	
 	serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+	setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, 1, sizeof(int));
 	rc = bind(serverSocket, (struct sockaddr *) &serverInfo, sizeof(serverInfo));
 	listen(serverSocket, 10);
 	
 	printf("Server Started.\n");
-	printf("Name: %s\nHost: %s\nPort: %d\n", servers[serverNumber].name, servers[serverNumber].ip, servers[serverNumber].port);
+	printf("Host: %s\nPort: %d\n\n", ip, port);
 	
-	pthread_detach(pthread_self());
-	//clientInfoLength = sizeof(clientInfoLength);
-	
+	pthread_cond_signal(&condLock);
 	pthread_mutex_unlock(&consoleLock);
-	while (TRUE) {
+	while (isRunning) {
 		clientSocket = accept(serverSocket, &clientInfo, &clientInfoLength);
 		
 		holder = createISIHolder(clientSocket, "init", 0);
@@ -151,16 +163,99 @@ void * server() {
 		tellMonitors(clientSocket, "connect", strlen("connect"));
 		
 		pthread_create(getThread(*getClient(socketArray(clientSocket, 1, FALSE))), NULL, client, getClient(socketArray(clientSocket, 1, FALSE)));
+		pthread_detach(*getThread(*getClient(socketArray(clientSocket, 1, FALSE))));
 	}//END WHILE LOOP
 	
 	return NULL;
 }
 
-//void * client(void * s) {
+/*
+ * TO-DO:
+ * 1) Layout function using messages only (done)
+ * 2) Create efficient method to read in html headers (in progress)
+ * 3) Implement the SHA1 and base64 for the websocket key
+ * 4) Write headers to client correctly
+ * 5) Open the continuous loop of client reads
+ * 6) Implement checks on when to close client socket
+ * 7) Do unmasking of bits
+ * 8) Do message processing
+ * 9) Clear message buffer to prevent left over data in variables
+*/
+//to make this as efficient as possible, every variable that is not to be used after the handshake needs to be malloced
+void * client(void * s) {
+	//need to type-cast (void *) to (clientStruct *)
+	clientStruct client = *(clientStruct *)s;
 	
-//}
+	int * validHeaders;
+	char readBuffer[1024];
+	
+	printf("Client connection accepted. Retreiving headers.\n");
+	
+	*validHeaders = processHeaders(getSocket(client));
+	
+	printf("Headers processed successfully.\n");
+	
+	printf("Sending response headers to client.\n");
+	
+	printf("Response headers sent successfully.\n");
+	
+	printf("Handshake complete. Begin accepting information from client.\n\n");
+	//pthread_detach(pthread_self());
+	
+	printf("Connection to client has been closed.\n");
+	
+	pthread_exit(NULL);
+	//pthread_cancel(pthread_self());
+	return NULL;
+}
+
+int processHeaders(int socket) {
+	int buffSize = 200;
+	char readBuffer[buffSize];
+	char * finalBuffer = NULL;
+	char * holder = NULL;
+	int i, bytes;
+	
+	char method[10];
+	     
+	
+	do {
+		bytes = read(socket, readBuffer, sizeof(readBuffer)-1);
+		
+		if (finalBuffer == NULL) {
+			finalBuffer = malloc(sizeof(char) * (bytes + 1));
+			strcpy(finalBuffer, readBuffer);
+		} else {
+			holder = finalBuffer;
+			finalBuffer = malloc(sizeof(char) * (strlen(holder) + bytes + 1));
+			strcpy(finalBuffer, holder);
+			strcat(finalBuffer, readBuffer);
+			memset(&holder, '\0', sizeof(holder)-1);
+			free(holder);
+			holder = NULL;
+		}//END IF
+		
+		memset(&readBuffer, '\0', sizeof(readBuffer));
+		
+	} while (bytes == buffSize-1);
+	
+	printf("All Headers\n-------------------\n%s\n------------------------\n", finalBuffer);
+	
+	free(finalBuffer);
+	finalBuffer = NULL;
+	
+	return 1;
+	
+	printf("Printing header information:\n\n");
+	for (i = 0; i < bytes; i++) {
+		printf("%c", readBuffer[i]);
+	}//END FOR LOOP
+	printf("\n\n");
+	return 1;
+}//END INT
 
 //OLD client function (will be rewritten)
+/**
 void * client (void *s) {
 	int i, j, pos, maskIndex;
 	
@@ -275,7 +370,7 @@ void * client (void *s) {
 			destroyHolder(holder, 3);
 			break;
 		} else if (bytes > 0) {
-			/*Byte Check*/
+			/*Byte Check*
 			for (j=0; j < bytes; j++) {
 				//printf("0x%08x\n", readBuffer[j]);
 				if (j == 0)
@@ -288,7 +383,7 @@ void * client (void *s) {
 					break;
 				}//END IF
 			}//END FOR LOOP
-			/**/
+			/**
 			
 			//first find the mask index
 			pos = atoi(&readBuffer[1]);
@@ -332,6 +427,7 @@ void * client (void *s) {
 	
 	return NULL;
 }//END FUNCTION
+/**/
 
 /**
 void * console() {
@@ -361,20 +457,28 @@ void * console() {
 	char cmd[101];
 	void ** holder;
 	
+	/**
+	//wait for the server to be initialized
+	pthread_mutex_lock(&consoleLock);
+	pthread_cond_signal(&condLock);
+	pthread_cond_wait(&condLock, &consoleLock);
+	pthread_mutex_unlock(&consoleLock);
+	/**/
+	
 	printf("Console activated.\n");
 	
 	while (TRUE) {
 		
 		memset(&cmd, '\0', sizeof(cmd)-1);
-		pthread_mutex_lock(&consoleLock);
+		//pthread_mutex_lock(&consoleLock);
 		printf("Console is ready for the next command.\n");
 		read(STDIN_FILENO, cmd, sizeof(cmd));
-		pthread_mutex_unlock(&consoleLock);
+		//pthread_mutex_unlock(&consoleLock);
 		
 		if (strncmp(cmd, "new server", 10) == 0) {
-			activeCount = (servers[0].name == NULL ? 0 : 1);
-			pthread_create(&servers[activeCount].t, NULL, server, NULL);
-			//condLock if needed
+			
+			
+			
 		} else if (strncmp(cmd, "list", 4) == 0) {
 			//Command: list
 			listActiveSockets();
@@ -406,8 +510,8 @@ void * console() {
 			listNodes(monitorList(0, 1, TRUE));
 		} else if (strncmp(cmd, "exit", 4) == 0) {
 			//Command: exit
-			//printf("Shutting down server... \n");
-			exit(0);
+			printf("Shutting down server... \n");
+			break;
 			//End exit
 		} else {
 			//Command: (command unknow situation)
@@ -531,16 +635,17 @@ void closeServers() {
 		memset(&servers[i].name, '\0', sizeof(servers[i].name)-1);
 		free(servers[i].name);
 		servers[i].name = NULL;
-		pthread_cancel(servers[i].t);
 	}//END FOR LOOP
+	
+	printf("Closing main server.\n");
+	pthread_cancel(*serverThread);
 }//END closeServers
 
-void closeConsoles() {
-	
-}//END closeConsoles
-
 void closeClients() {
-	
+	clientNode * head = NULL;
+	for (head = socketArray(0, 1, TRUE); head != NULL; head = head->next) {
+		pthread_cancel(*getThread(*getClient(head)));
+	}//END FOR LOOP
 }//END closeClients
 
 void closeMonitors() {
