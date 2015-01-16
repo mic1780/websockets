@@ -25,6 +25,7 @@
 #define CLOSING 2
 #define CLOSED 3
 #define NUM_OF_CLIENTS 600
+#define NUM_OF_SERVERS 10
 
 #define IP_OCTET_1 127
 #define IP_OCTET_2 0

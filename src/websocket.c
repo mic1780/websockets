@@ -66,7 +66,6 @@ void * console();
 char * getIPList(int retIndex);
 
 void closeServers();
-void closeConsoles();
 void closeClients();
 void closeMonitors();
 void shutdownInit();
@@ -143,7 +142,7 @@ void * server() {
 	serverInfo.sin_port =        htons(port);//to be changed to user entered port / CONNECTION_PORT + active servers
 	
 	serverSocket = socket(AF_INET, SOCK_STREAM, 0);
-	setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, 1, sizeof(int));
+	//setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, 1, sizeof(int));
 	rc = bind(serverSocket, (struct sockaddr *) &serverInfo, sizeof(serverInfo));
 	listen(serverSocket, 10);
 	
@@ -162,8 +161,11 @@ void * server() {
 		printf("Client %d connected\n", clientSocket);
 		tellMonitors(clientSocket, "connect", strlen("connect"));
 		
-		pthread_create(getThread(*getClient(socketArray(clientSocket, 1, FALSE))), NULL, client, getClient(socketArray(clientSocket, 1, FALSE)));
-		pthread_detach(*getThread(*getClient(socketArray(clientSocket, 1, FALSE))));
+		rc = pthread_create(&(getClient(socketArray(clientSocket, 1, FALSE))->t), NULL, client, getClient(socketArray(clientSocket, 1, FALSE)));
+		if (rc) {
+			printf("\n\tERROR: return code from pthread_create is %d \n", rc);
+			exit(1);
+		}//END IF
 	}//END WHILE LOOP
 	
 	return NULL;
@@ -172,10 +174,10 @@ void * server() {
 /*
  * TO-DO:
  * 1) Layout function using messages only (done)
- * 2) Create efficient method to read in html headers (in progress)
- * 3) Implement the SHA1 and base64 for the websocket key
- * 4) Write headers to client correctly
- * 5) Open the continuous loop of client reads
+ * 2) Create efficient method to read in html headers (done)
+ * 3) Implement the SHA1 and base64 for the websocket key (done)
+ * 4) Write headers to client correctly (done)
+ * 5) Open the continuous loop of client reads (in progress)
  * 6) Implement checks on when to close client socket
  * 7) Do unmasking of bits
  * 8) Do message processing
@@ -185,74 +187,109 @@ void * server() {
 void * client(void * s) {
 	//need to type-cast (void *) to (clientStruct *)
 	clientStruct client = *(clientStruct *)s;
+	pthread_detach(pthread_self());
 	
-	int * validHeaders;
+	int validHeaders;
+	int i;
+	
+	int isConnected = 1;
+	char * writeBuffer = NULL;
 	char readBuffer[1024];
+	char extraBuffer[1024];
+	int readBytes,
+	    writeBytes,
+	    extraBytes = 0;
+	int maskIndex;
+	char masks[4];
+	
+	void ** holder;
 	
 	printf("Client connection accepted. Retreiving headers.\n");
 	
-	*validHeaders = processHeaders(getSocket(client));
+	validHeaders = processHeaders(getSocket(client));
 	
-	printf("Headers processed successfully.\n");
-	
-	printf("Sending response headers to client.\n");
+	if (validHeaders == 0) {
+		holder = createISIHolder(getSocket(client), "close", 0);
+		(int)doFunction("alterStruct", holder);
+		destroyHolder(holder, 3);
+		pthread_exit(NULL);
+		return NULL;
+	}//END IF
 	
 	printf("Response headers sent successfully.\n");
 	
 	printf("Handshake complete. Begin accepting information from client.\n\n");
-	//pthread_detach(pthread_self());
 	
-	printf("Connection to client has been closed.\n");
+	while (isConnected) {
+		memset(&readBuffer, '\0', sizeof(readBuffer));
+		
+		if (extraBytes == 0) {
+			readBytes = read(getSocket(client), readBuffer, sizeof(readBuffer));
+		} else {
+			memcpy(readBuffer, extraBuffer, extraBytes);
+			readBytes = extraBytes;
+			extraBytes = 0;
+		}//END IF
+		
+		//printf("bytes read: %d\n", readBytes);
+		//for (i = 0; i < readBytes; i++) {
+			//printf("byte #%02d: 0x%08x\n", i, readBuffer[i]);
+		//}//END FOR LOOP
+		
+		if (readBytes <= 0 || readBuffer[0] == '\x88') {
+			holder = createISIHolder(getSocket(client), "close", 0);
+			if ((int)doFunction("alterStruct", holder) == -1) {
+				printf("\n\n\t\t **** ERROR: CAUGHT CLOSE ATTEMPT OF BAD SOCKET ****\n");
+				printf("\t\t **** IF KILL COMMAND GIVEN FROM CONSOLE IGNORE THIS ****\n\n");
+			} else {
+				printf("Client #%d Closed.\n", getSocket(client));
+			}//END IF
+			destroyHolder(holder, 3);
+			isConnected = 0;
+			break;
+		} else if (readBytes > 0) {
+			
+			maskIndex = 2;
+			writeBytes = (readBuffer[1] & 0x7f);
+			//printf("Value of writeBytes: %d\n", writeBytes);
+			if ((readBuffer[1] & 0x7f) == 126) {
+				maskIndex = 4;
+				writeBytes = ( (readBuffer[2] * 256) + readBuffer[3] );
+			} else if ((readBuffer[1] & 0x7f) == 127) {
+				maskIndex = 10;
+			}//END IF
+			
+			masks[0] = readBuffer[maskIndex++];
+			masks[1] = readBuffer[maskIndex++];
+			masks[2] = readBuffer[maskIndex++];
+			masks[3] = readBuffer[maskIndex++];
+			
+			writeBuffer = malloc(sizeof(char) * (writeBytes + 1));
+			memset(writeBuffer, '\0', writeBytes + 1);
+			for(i=maskIndex; i < readBytes; i++) {
+				writeBuffer[i - maskIndex] = readBuffer[i] ^ masks[(i - maskIndex) % 4];
+				//printf("current character: %c\n", writeBuffer[i - maskIndex]);
+			}//END FOR LOOP
+			printf("Message from socket #%d: \"%s\"\n", getSocket(client), writeBuffer);
+			
+			//send the decoded message to the performAction function
+			holder = createSCSHolder(writeBuffer, &client);
+			doFunction("performAction", holder);//this is where the magic happens
+			destroyHolder(holder, 2);
+			
+			//tellMonitors(getSocket(client), writeBuffer, strlen(writeBuffer));
+			
+			memset(&writeBuffer, '\0', sizeof(writeBuffer));
+			free(writeBuffer);
+			writeBuffer = NULL;
+		}//END IF
+	}//END WHILE LOOP
 	
 	pthread_exit(NULL);
-	//pthread_cancel(pthread_self());
 	return NULL;
 }
 
-int processHeaders(int socket) {
-	int buffSize = 200;
-	char readBuffer[buffSize];
-	char * finalBuffer = NULL;
-	char * holder = NULL;
-	int i, bytes;
-	
-	char method[10];
-	     
-	
-	do {
-		bytes = read(socket, readBuffer, sizeof(readBuffer)-1);
-		
-		if (finalBuffer == NULL) {
-			finalBuffer = malloc(sizeof(char) * (bytes + 1));
-			strcpy(finalBuffer, readBuffer);
-		} else {
-			holder = finalBuffer;
-			finalBuffer = malloc(sizeof(char) * (strlen(holder) + bytes + 1));
-			strcpy(finalBuffer, holder);
-			strcat(finalBuffer, readBuffer);
-			memset(&holder, '\0', sizeof(holder)-1);
-			free(holder);
-			holder = NULL;
-		}//END IF
-		
-		memset(&readBuffer, '\0', sizeof(readBuffer));
-		
-	} while (bytes == buffSize-1);
-	
-	printf("All Headers\n-------------------\n%s\n------------------------\n", finalBuffer);
-	
-	free(finalBuffer);
-	finalBuffer = NULL;
-	
-	return 1;
-	
-	printf("Printing header information:\n\n");
-	for (i = 0; i < bytes; i++) {
-		printf("%c", readBuffer[i]);
-	}//END FOR LOOP
-	printf("\n\n");
-	return 1;
-}//END INT
+
 
 //OLD client function (will be rewritten)
 /**
@@ -280,65 +317,6 @@ void * client (void *s) {
 	int flag = 0;//header or value: 0 = header, 1 = value
 	
 	void ** holder;//holder for arguments using createHolder functions
-	
-	printf("New thread created\n");
-	bytes =	read(getSocket(cli), readBuffer, sizeof(readBuffer)-1);
-	printf("Connection received. Parsing headers.\n");
-	
-	for (i=0; i < bytes; i++) {
-		if (flag == 0) {
-			if (readBuffer[i] == '\r') {
-				i++;
-				memset(&currHeader, '\0', sizeof(currHeader)-1);
-			} else if (currHeader[0] == '\0') {
-				currHeader[0] = readBuffer[i];
-			} else if (readBuffer[i] == ':') {
-				i++;
-				flag = 1;
-			} else {
-				currHeader[strlen(currHeader)] = readBuffer[i];
-			}//END IF
-		} else {
-			if (currValue[0] == '\0') {
-				currValue[0] = readBuffer[i];
-			} else if (readBuffer[i] == '\r') {
-				if (strcmp(currHeader, "Sec-WebSocket-Key") == 0) {
-					SHA1Reset(&sha);
-					strcpy(key, currValue);
-					strcat(key, "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
-					SHA1Input(&sha, key, strlen(key));
-					SHA1Result(&sha);
-					memset(&key, '\0', strlen(key) - 1);
-					for(j = 0; j < 5; ++j) {	// put in correct byte order before memcpy.
-						sha.Message_Digest[j] = ntohl(sha.Message_Digest[j]);
-					}//END FOR LOOP
-					memcpy(midKey, (unsigned char*)sha.Message_Digest, 20);
-					
-					// encode `midKey' in base 64, into `endKey'.
-					base64_init_encodestate(&b64_ctx);
-					pos = base64_encode_block((const char*)midKey, 20, endKey, &b64_ctx);
-					base64_encode_blockend(endKey + pos, &b64_ctx);
-					
-				}//END IF
-				//printf("%s: %s\n", currHeader, currValue);
-				memset(&currHeader, '\0', sizeof(currHeader));
-				memset(&currValue, '\0', sizeof(currValue));
-				i++;
-				flag = 0;
-			} else {
-				currValue[strlen(currValue)] = readBuffer[i];
-			}//END IF
-		}//END IF
-	}//END FOR LOOP
-	//printf("Headers parsed. Sending back response.\n");
-	strcpy(writeBuffer, "HTTP/1.1 101 Switching Protocols\r\n");
-	strcat(writeBuffer, "Upgrade: websocket\r\n");
-	strcat(writeBuffer, "Connection: Upgrade\r\n");
-	//write the sec-ws-accept to buffer
-	strcat(writeBuffer, "Sec-WebSocket-Accept: ");
-	strcat(writeBuffer, endKey);
-	strcat(writeBuffer, "\r\n");
-	write(getSocket(cli), writeBuffer, strlen(writeBuffer));
 	
 	memset(&readBuffer, '\0', sizeof(readBuffer));
 	
@@ -428,6 +406,223 @@ void * client (void *s) {
 	return NULL;
 }//END FUNCTION
 /**/
+
+int processHeaders(int socket) {
+	int buffSize = 200;
+	char readBuffer[buffSize];
+	char * response = NULL;
+	char * finalBuffer = NULL;
+	char * holder = NULL;
+	int i, bytes;
+	
+	char method[10];
+	int lineIndex = 0;
+	int currIndex = 0;
+	
+	//used for processing headers
+	int validHeader = 1;
+	char * currHeader = NULL;
+	char * currData = NULL;
+	
+	//used to compute key
+	int j;
+	SHA1Context sha;
+	base64_encodestate b64_ctx;
+	char * key = NULL;
+	unsigned char midKey[20];
+	char endKey[40];
+	
+	do {
+		bytes = read(socket, readBuffer, sizeof(readBuffer)-1);
+		
+		if (finalBuffer == NULL) {
+			finalBuffer = malloc(sizeof(char) * (bytes + 1));
+			strcpy(finalBuffer, readBuffer);
+		} else {
+			holder = finalBuffer;
+			finalBuffer = malloc(sizeof(char) * (strlen(holder) + bytes + 1));
+			strcpy(finalBuffer, holder);
+			strcat(finalBuffer, readBuffer);
+			memset(&holder, '\0', sizeof(holder)-1);
+			free(holder);
+			holder = NULL;
+		}//END IF
+		
+		memset(&readBuffer, '\0', sizeof(readBuffer));
+		
+	} while (bytes == buffSize-1);
+	
+	bytes = strlen(finalBuffer);
+	
+	//Check if the method is GET
+	if (strncmp(finalBuffer, "GET", 3) != 0) {
+		response = malloc(sizeof(char) * 46);
+		strcpy(response, "HTTP/1.1 405 Method Not Allowed\r\nAllow: GET\r\n");
+		write(socket, response, strlen(response));
+		memset(&response, '\0', sizeof(response)-1);
+		free(response);
+		response = NULL;
+		return 0;
+	}//END IF
+	
+	//Check if the request has a leading /
+	if (finalBuffer[4] != '/') {
+		response = malloc(sizeof(char) * 27);
+		strcpy(response, "HTTP/1.1 400 Bad Request\r\n");
+		write(socket, response, strlen(response));
+		memset(&response, '\0', sizeof(response)-1);
+		free(response);
+		response = NULL;
+		return 0;
+	}//END IF
+	
+	//get the length of the path used in the request
+	for (i = 5; finalBuffer[i] != ' '; i++) {
+		currIndex++;
+	}//END FOR LOOP
+	
+	if (currIndex > 0) {
+		for (i = 1; i <= NUM_OF_SERVERS; i++) {
+			if (i == NUM_OF_SERVERS) {
+				break;
+			}//END IF
+			if (servers[i].name == NULL) {
+				continue;
+			}//END IF
+			if (strncmp(finalBuffer + 5, servers[i].name, currIndex) == 0) {
+				break;
+			}//END IF
+		}//END FOR LOOP
+		
+		if (i == NUM_OF_SERVERS) {
+			response = malloc(sizeof(char) * 25);
+			strcpy(response, "HTTP/1.1 404 Not Found\r\n");
+			write(socket, response, strlen(response));
+			memset(&response, '\0', sizeof(response)-1);
+			free(response);
+			response = NULL;
+			return 0;
+		}//END IF
+	}//END IF
+	
+	//get the start position of the first header
+	for (i = 6; i < bytes; i++) {
+		if (strncmp(finalBuffer + i, "\r\n", 2) == 0) {
+			currIndex = i+2;
+			break;
+		}//END IF
+	}//END FOR LOOP
+	
+	//run over the headers
+	for (i = currIndex; i < bytes; i++) {
+		if (strncmp(finalBuffer + i, "\r\n", 2) == 0) {
+			if (i == currIndex)
+				break;
+			currData = malloc(sizeof(char) * (i - currIndex + 1));
+			memcpy(currData, finalBuffer + currIndex, (i - currIndex));
+			currData[(i-currIndex)] = '\0';
+			
+			if (strcmp(currHeader, "Upgrade") == 0) {
+				if (strcmpi(currData, "websocket") != 0) {
+					validHeader = 0;
+				}//END IF
+			}
+			if (strcmp(currHeader, "Connection") == 0) {
+				if (strcmpi(currData, "Upgrade") != 0) {
+					validHeader = 0;
+				}//END IF
+			}
+			if (strcmp(currHeader, "Sec-WebSocket-Key") == 0) {
+				key = malloc(sizeof(char) * (strlen(currData) + strlen("258EAFA5-E914-47DA-95CA-C5AB0DC85B11") + 1));
+				SHA1Reset(&sha);
+				strcpy(key, currData);
+				strcat(key, "258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
+				SHA1Input(&sha, key, strlen(key));
+				SHA1Result(&sha);
+				for(j = 0; j < 5; ++j) {	// put in correct byte order before memcpy.
+					sha.Message_Digest[j] = ntohl(sha.Message_Digest[j]);
+				}//END FOR LOOP
+				memcpy(midKey, (unsigned char*)sha.Message_Digest, 20);
+				
+				memset(&key, '\0', strlen(key) - 1);
+				free(key);
+				key = NULL;
+				
+				// encode `midKey' in base 64, into `endKey'.
+				base64_init_encodestate(&b64_ctx);
+				j = base64_encode_block((const char*)midKey, 20, endKey, &b64_ctx);
+				base64_encode_blockend(endKey + j, &b64_ctx);
+				
+			}//END IF
+			if (strcmp(currHeader, "Sec-WebSocket-Version") == 0) {
+				if (strcmp(currData, "13") != 0) {
+					validHeader = 0;
+				}//END IF
+			}//END IF
+			
+			//printf("Current Header: %s\nCurrent Data: %s\n\n", currHeader, currData);
+			memset(&currData, '\0', sizeof(currData)-1);
+			free(currData);
+			currData = NULL;
+			if (currHeader != NULL) {
+				memset(&currHeader, '\0', sizeof(currHeader)-1);
+				free(currHeader);
+				currHeader = NULL;
+			}//END IF
+			
+			if (validHeader == 0) break;
+			currIndex = i+2;
+			i++;
+			continue;
+		}//END IF
+		if (strncmp(finalBuffer + i, ": ", 2) == 0) {
+			currHeader = malloc(sizeof(char) * (i - currIndex + 1));
+			memcpy(currHeader, finalBuffer + currIndex, (i - currIndex));
+			currHeader[(i-currIndex)] = '\0';
+			currIndex = i+2;
+		}//END IF
+	}//END FOR LOOP
+	
+	//this is where the final decision comes in if we deny or reject the connection
+	if (validHeader) {
+		response = malloc(sizeof(char) * (99 + strlen(endKey) + 1));
+		strcpy(response, "HTTP/1.1 101 Switching Protocols\r\n");
+		strcat(response, "Upgrade: websocket\r\n");
+		strcat(response, "Connection: Upgrade\r\n");
+		//write the sec-ws-accept to buffer
+		strcat(response, "Sec-WebSocket-Accept: ");
+		strcat(response, endKey);
+		strcat(response, "\r\n");
+		
+		write(socket, response, strlen(response));
+		memset(&response, '\0', sizeof(response)-1);
+		free(response);
+		response = NULL;
+		return 1;
+	} else {
+		response = malloc(sizeof(char) * 27);
+		strcpy(response, "HTTP/1.1 400 Bad Request\r\n");
+		write(socket, response, strlen(response));
+		memset(&response, '\0', sizeof(response)-1);
+		free(response);
+		response = NULL;
+		return 0;
+	}//END IF
+	
+	printf("All Headers\n-------------------\n%s\n------------------------\n", finalBuffer);
+	
+	free(finalBuffer);
+	finalBuffer = NULL;
+	
+	return 1;
+	
+	printf("Printing header information:\n\n");
+	for (i = 0; i < bytes; i++) {
+		printf("%c", readBuffer[i]);
+	}//END FOR LOOP
+	printf("\n\n");
+	return 1;
+}//END INT
 
 /**
 void * console() {
@@ -644,7 +839,7 @@ void closeServers() {
 void closeClients() {
 	clientNode * head = NULL;
 	for (head = socketArray(0, 1, TRUE); head != NULL; head = head->next) {
-		pthread_cancel(*getThread(*getClient(head)));
+		pthread_cancel(getClient(head)->t);
 	}//END FOR LOOP
 }//END closeClients
 
