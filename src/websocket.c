@@ -83,13 +83,6 @@ int main(int argc, char ** argv) {
 	serverThread = malloc(sizeof(pthread_t));
 	
 	//allow us console control without locking up the server.
-	/**
-	pthread_mutex_lock(&consoleLock);
-	pthread_create(&(*serverThread), NULL, console, NULL);
-	pthread_cond_wait(&condLock, &consoleLock);
-	pthread_mutex_unlock(&consoleLock);
-	/**/
-	
 	pthread_mutex_lock(&consoleLock);
 	pthread_create(&(*serverThread), NULL, server, NULL);
 	pthread_cond_wait(&condLock, &consoleLock);
@@ -523,12 +516,12 @@ int processHeaders(int socket) {
 			currData[(i-currIndex)] = '\0';
 			
 			if (strcmp(currHeader, "Upgrade") == 0) {
-				if (strcmpi(currData, "websocket") != 0) {
+				if (strcasecmp(currData, "websocket") != 0) {
 					validHeader = 0;
 				}//END IF
 			}
 			if (strcmp(currHeader, "Connection") == 0) {
-				if (strcmpi(currData, "Upgrade") != 0) {
+				if (strcasecmp(currData, "Upgrade") != 0) {
 					validHeader = 0;
 				}//END IF
 			}
