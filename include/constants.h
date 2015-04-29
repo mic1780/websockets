@@ -33,6 +33,11 @@
 #define IP_OCTET_4 1
 #define CONNECTION_PORT 1780
 
+//constants for method based functions
+#define METHOD_FIND 1
+#define METHOD_CREATE 2
+#define METHOD_DELETE 4
+
 
 //#if defined(_X86_) || defined(__x86_64__)
 #if defined(_X86_) || defined(__x86_64__)

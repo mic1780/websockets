@@ -46,6 +46,10 @@
 #include <netdb.h>
 #include <ifaddrs.h>
 
+#include <dirent.h>
+
+#include <limits.h> //needed for PATH_MAX constant
+
 #include "../include/sha1.h"
 #include "../include/base64.h"
 #include "../include/constants.h"
@@ -54,9 +58,10 @@
 
 //GLOBALS
 pthread_t * serverThread;
-serverStruct servers[10];
+pthread_t * outputThread;
 pthread_mutex_t consoleLock;
 pthread_cond_t condLock;
+serverStruct servers[10];
 int isRunning;
 
 //PROTOTYPES
@@ -81,8 +86,14 @@ int main(int argc, char ** argv) {
 	pthread_mutex_init(&consoleLock, NULL);
 	pthread_cond_init(&condLock, NULL);
 	serverThread = malloc(sizeof(pthread_t));
+	outputThread = malloc(sizeof(pthread_t));
+	
+	/*thread for switching printf around*/
+	startServers();
+	pthread_create(&(*outputThread), NULL, printRedirect, NULL);
 	
 	//allow us console control without locking up the server.
+	/**
 	pthread_mutex_lock(&consoleLock);
 	pthread_create(&(*serverThread), NULL, server, NULL);
 	pthread_cond_wait(&condLock, &consoleLock);
@@ -91,6 +102,8 @@ int main(int argc, char ** argv) {
 	
 	pthread_mutex_destroy(&consoleLock);
 	pthread_cond_destroy(&condLock);
+	/**/
+	console();
 	
 	//declare functions to run to clean up server (ensure clean server close)
 	//these are at the end because they would not run if a client tries to connect
@@ -102,8 +115,111 @@ int main(int argc, char ** argv) {
 	return 0;
 }//END main
 
+void * printRedirect() {
+	struct sockaddr_in connInfo;
+	struct sockaddr_in clientInfo;
+	int isRunning = 1;
+	int in_holder = 0;
+	int out_holder = 1;
+	//int port =	4332;
+	int port =	80;
+	
+	int connSocket,
+	    clientSocket,
+	    clientInfoLength;
+	
+	char readBuffer[512];
+	char writeBuffer[512];
+	char * str = NULL;
+	int readBytes, writeBytes;
+	
+	pid_t cpid;
+	
+	memset(&connInfo, 0, sizeof(connInfo));
+	connInfo.sin_family =      AF_INET;
+	connInfo.sin_addr.s_addr = inet_addr("192.168.1.113");
+	//connInfo.sin_addr.s_addr = inet_addr("127.0.0.1");
+	//connInfo.sin_port =        htons(CONNECTION_PORT);//to be changed to user entered port / CONNECTION_PORT + active servers
+	connInfo.sin_port =        htons(port);//to be changed to user entered port / CONNECTION_PORT + active servers
+	
+	connSocket = socket(AF_INET, SOCK_STREAM, 0);
+	bind(connSocket, (struct sockaddr *) &connInfo, sizeof(connInfo));
+	listen(connSocket, 1);
+	
+	in_holder = dup(0);
+	out_holder = dup(1);
+	while (isRunning) {
+		clientSocket =	accept(connSocket, &clientInfo, &clientInfoLength);
+		readBytes = read(clientSocket, readBuffer, sizeof(readBuffer));
+		if (strcmp(readBuffer, "Validate Client: COP-test-run") != 0) {
+			strcpy(writeBuffer, "Invalid connection string. Terminating connection.");
+			if (write(clientSocket, writeBuffer, strlen(writeBuffer)) <= 0) {
+				printf("Failed to write. Closing connection anyways.\n");
+			}//END IF
+			close(clientSocket);
+			clientSocket = -1;
+		}//END IF
+		
+		//printf("test\n");
+		memset(readBuffer, '\0', strlen(readBuffer));
+		
+		if (clientSocket != -1) {
+			printf("Switching from Console mode to Admin mode.\n");
+			dup2(clientSocket, 0);
+			dup2(clientSocket, 1);
+			while (TRUE) {
+				readBytes = read(STDIN_FILENO, readBuffer, sizeof(readBuffer));
+				if (readBytes <= 0) {
+					break;
+				}//END IF
+				
+				if (strcasecmp(readBuffer, "getAvailableModules") == 0) {
+					//printf("we are sending available modules.\n");
+					str = getModuleList(0);
+					printf("%s\n", str);
+					free(str);
+					str = NULL;
+				} else if (strcasecmp(readBuffer, "getActiveModules") == 0) {
+					//printf("we are sending active modules.\n");
+					str = getModuleList(1);
+					printf("%s\n", str);
+					free(str);
+					str = NULL;
+				} else if (strncasecmp(readBuffer, "activateModule", 14) == 0) {
+					dup2(out_holder, 1);
+					activateModule(readBuffer + 15);
+					dup2(clientSocket, 1);
+				} else if (strncasecmp(readBuffer, "deactivateModule", 16) == 0) {
+					dup2(out_holder, 1);
+					deactivateModule(readBuffer + 17);
+					dup2(clientSocket, 1);
+				}//END IF
+				
+				dup2(out_holder, 1);
+				printf("string: '%s'\n", readBuffer);
+				printf("readBytes = %d\n", readBytes);
+				dup2(clientSocket, 1);
+				
+				memset(readBuffer, '\0', strlen(readBuffer));
+			}//END WHILE LOOP
+			dup2(in_holder, 0);
+			dup2(out_holder, 1);
+			close(clientSocket);
+			printf("Switching from Admin mode to Console mode.\n");
+		}//END IF
+		
+		memset(readBuffer, '\0', sizeof(readBuffer));
+		
+	}//END WHILE LOOP
+	
+	close(in_holder);
+	close(out_holder);
+	
+	return NULL;
+}//END VOID
+
 void * server() {
-	pthread_mutex_lock(&consoleLock);
+	//pthread_mutex_lock(&consoleLock);
 	int rc,
 	    serverSocket;
 	struct sockaddr_in serverInfo;
@@ -113,10 +229,59 @@ void * server() {
 	
 	void ** holder;
 	
-	int optionNumber = 0;
+	int optionNumber = -1;
 	char ip[16];
 	int port;
 	
+	char * path = NULL;
+	char readBuffer[100];
+	FILE * fi = NULL;
+	
+	//using port in place of i to save memory
+	for (port = 0; port < NUM_OF_SERVERS; port++) {
+		if (pthread_equal(servers[port].t, pthread_self()) != 0) {
+			optionNumber = port;
+			break;
+		}//END IF
+	}//END FOR LOOP
+	
+	if (optionNumber == -1)
+		return NULL;
+	
+	path = malloc(sizeof(char) * (strlen("./modules/active/") + strlen(servers[optionNumber].name) + 1));
+	strcpy(path, "./modules/active/");
+	strcat(path, servers[optionNumber].name);
+	fi = fopen(path, "r");
+	
+	while (feof(fi) == 0) {
+		fscanf(fi, "%s", readBuffer);
+		
+		if (strcasecmp(readBuffer, "address") == 0) {
+			fscanf(fi, "%s", ip);
+			strcpy(servers[optionNumber].ip, ip);
+		} else if (strcasecmp(readBuffer, "port") == 0) {
+			fscanf(fi, "%d", &port);
+			servers[optionNumber].port = port;
+		} else if (strcasecmp(readBuffer, "path") == 0) {
+			memset(readBuffer, '\0', strlen(readBuffer));
+			fscanf(fi, "%s", readBuffer);
+			servers[optionNumber].path = malloc(sizeof(char) * (strlen(readBuffer) + 1));
+			strcpy(servers[optionNumber].path, readBuffer);
+		} else {
+			memset(readBuffer, '\0', strlen(readBuffer));
+			fscanf(fi, "%s", readBuffer);
+		}//END IF
+		memset(readBuffer, '\0', strlen(readBuffer));
+		
+	}//END WHILE LOOP
+	
+	fclose(fi);
+	memset(&serverInfo, 0, sizeof(serverInfo));
+	serverInfo.sin_family =      AF_INET;
+	serverInfo.sin_addr.s_addr = inet_addr(servers[optionNumber].ip);
+	serverInfo.sin_port =        htons(servers[optionNumber].port);//to be changed to user entered port / CONNECTION_PORT + active servers
+	
+	/*NO MODULE METHOD*
 	//set server ip to use
 	printf("Please select the option number that has the IP address you want to use for this server.\n\n");
 	getIPList(0);
@@ -134,17 +299,20 @@ void * server() {
 	serverInfo.sin_addr.s_addr = inet_addr(ip);
 	serverInfo.sin_port =        htons(port);//to be changed to user entered port / CONNECTION_PORT + active servers
 	
+	/**/
+	
+	
 	serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 	//setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, 1, sizeof(int));
 	rc = bind(serverSocket, (struct sockaddr *) &serverInfo, sizeof(serverInfo));
 	listen(serverSocket, 10);
 	
 	printf("Server Started.\n");
-	printf("Host: %s\nPort: %d\n\n", ip, port);
+	printf("Host: %s\nPort: %d\n\n", servers[optionNumber].ip, servers[optionNumber].port);
 	
-	pthread_cond_signal(&condLock);
-	pthread_mutex_unlock(&consoleLock);
-	while (isRunning) {
+	//pthread_cond_signal(&condLock);
+	//pthread_mutex_unlock(&consoleLock);
+	while (servers[optionNumber].isRunning) {
 		clientSocket = accept(serverSocket, &clientInfo, &clientInfoLength);
 		
 		holder = createISIHolder(clientSocket, "init", 0);
@@ -160,6 +328,17 @@ void * server() {
 			exit(1);
 		}//END IF
 	}//END WHILE LOOP
+	
+	//release resources
+	memset(servers[optionNumber].name, '\0', strlen(servers[optionNumber].name));
+	free(servers[optionNumber].name);
+	servers[optionNumber].name = NULL;
+	
+	memset(servers[optionNumber].path, '\0', strlen(servers[optionNumber].path));
+	free(servers[optionNumber].path);
+	servers[optionNumber].path = NULL;
+	
+	close(serverSocket);
 	
 	return NULL;
 }
@@ -282,123 +461,37 @@ void * client(void * s) {
 	return NULL;
 }
 
-
-
-//OLD client function (will be rewritten)
-/**
-void * client (void *s) {
-	int i, j, pos, maskIndex;
+void startServers() {
+	DIR *dir;
+	struct dirent *ent;
+	char * filename = NULL;
+	int i = 0;
 	
-	clientStruct cli =	*(clientStruct *)s;
-	
-	char currHeader[100];//our current header
-	char currValue[512];//our value for our current header
-	char shaOutput[40];
-	
-	char key[100];//the initial key from headers
-	unsigned char midKey[20];
-	char endKey[200];//key after append and SHA1
-	
-	SHA1Context sha;
-	base64_encodestate b64_ctx;
-	
-	char	readBuffer[1024],
-			secondaryBuffer[1024],
-			writeBuffer[1024],
-			masks[4];//the buffers
-	int bytes, secondaryBytes = 0;//total received bytes.
-	int flag = 0;//header or value: 0 = header, 1 = value
-	
-	void ** holder;//holder for arguments using createHolder functions
-	
-	memset(&readBuffer, '\0', sizeof(readBuffer));
-	
-	while(TRUE) {
-		memset(&readBuffer, '\0', sizeof(readBuffer));
-		if (secondaryBytes == 0) {
-			bytes =	read(getSocket(cli), readBuffer, sizeof(readBuffer));
-		} else {
-			memcpy(readBuffer, secondaryBuffer, secondaryBytes);
-			bytes = secondaryBytes;
-			secondaryBytes = 0;
-		}
+	//first we want to open the active module directory
+	if ((dir = opendir("./modules/active/")) != NULL) {
 		
-		//printf("bytes read: %d\n", bytes);
-		//for (i = 0; i < bytes; i++) {
-			//printf("byte #%02d: 0x%08x\n", i, readBuffer[i]);
-		//}//END FOR LOOP
-		
-		//If the byteStream was closed or we receive a close byte, confirm close and release connection
-		if (bytes <= 0 || readBuffer[0] == '\x88') {
-			holder = createISIHolder(getSocket(cli), "close", 0);
-			if ((int)doFunction("alterStruct", holder) == -1) {
-			//if ((int)alterStruct(getSocket(cli), "close") == -1) {
-				printf("\n\n\t\t **** ERROR: CAUGHT CLOSE ATTEMPT OF BAD SOCKET ****\n");
-				printf("\t\t **** IF KILL COMMAND GIVEN FROM CONSOLE IGNORE THIS ****\n\n");
+		//as long as we have directories and files to read 
+		while ((ent = readdir(dir)) != NULL) {
+			
+			filename = malloc(sizeof(char) * (strlen(ent->d_name) + 1));
+			strcpy(filename, ent->d_name);
+			if (strcmp(filename, ".") != 0 && strcmp(filename, "..") != 0) {
+				servers[i].name = filename;
+				servers[i].isRunning = 1;
+				pthread_create(&(servers[i].t), NULL, server, NULL);
+				i++;
 			} else {
-				printf("Client #%d Closed.\n", getSocket(cli));
-			}//END IF
-			destroyHolder(holder, 3);
-			break;
-		} else if (bytes > 0) {
-			/*Byte Check*
-			for (j=0; j < bytes; j++) {
-				//printf("0x%08x\n", readBuffer[j]);
-				if (j == 0)
-					continue;
-				if (readBuffer[j] == '\x81' && readBuffer[j-1] == '\x00' && readBuffer[j-2] == '\x00') {
-					printf("only using %d of the %d bytes availible for this message\n", j, bytes);
-					secondaryBytes = bytes - j;
-					//printf("Potential second message attached to this message\nCopying it to the secondary buffer.\n");
-					memcpy(secondaryBuffer, readBuffer + j, secondaryBytes);
-					break;
-				}//END IF
-			}//END FOR LOOP
-			/**
-			
-			//first find the mask index
-			pos = atoi(&readBuffer[1]);
-			maskIndex = 2;
-			if ((readBuffer[1] & 0x7f) == 126) {
-				maskIndex = 4;
-			} else if ((readBuffer[1] & 0x7f) == 127) {
-				maskIndex = 10;
+				free(filename);
+				filename = NULL;
 			}//END IF
 			
-			//reset buffer to NULL bytes
-			memset(&writeBuffer, '\0', sizeof(writeBuffer));
-			
-			//grab the mask bytes from the message
-			masks[0] = readBuffer[maskIndex];
-			masks[1] = readBuffer[maskIndex + 1];
-			masks[2] = readBuffer[maskIndex + 2];
-			masks[3] = readBuffer[maskIndex + 3];
-			maskIndex += 4;
-			
-			//next use the maskIndex to rewrite the existing bytes to decode the message
-			for(j=maskIndex; j < bytes; j++) {
-				writeBuffer[j - maskIndex] = readBuffer[j] ^ masks[(j - maskIndex) % 4];
-			}//END FOR LOOP
-			
-			printf("Message from socket #%d: \"%s\"\n", getSocket(cli), writeBuffer);
-			
-			//send the decoded message to the performAction function
-			holder = createSCSHolder(writeBuffer, &cli);
-			doFunction("performAction", holder);//this is where the magic happens
-			destroyHolder(holder, 2);
-			
-			tellMonitors(getSocket(cli), writeBuffer, strlen(writeBuffer));
-			
-			//reset buffer to NULL bytes
-			memset(&writeBuffer, '\0', sizeof(writeBuffer));
-		}//END IF
-	}//END WHILE LOOP
+		}//END WHILE LOOP
+		closedir(dir);
+	} else {
+		printf("Could not open directory.\n");
+	}//END IF
 	
-	printf("Thread ended.\n");
-	
-	return NULL;
-}//END FUNCTION
-/**/
+}//END startServers
 
 int processHeaders(int socket) {
 	int buffSize = 200;
@@ -643,6 +736,7 @@ void * console() {
 	int activeCount;
 	long x;
 	char cmd[101];
+	char * arg = NULL;
 	void ** holder;
 	
 	/**
@@ -653,20 +747,33 @@ void * console() {
 	pthread_mutex_unlock(&consoleLock);
 	/**/
 	
+	//system("ls modules/available/*.conf | sed 's_.*/__' | sed 's_.conf__' | tail");
+	
 	printf("Console activated.\n");
 	
 	while (TRUE) {
 		
-		memset(&cmd, '\0', sizeof(cmd)-1);
-		//pthread_mutex_lock(&consoleLock);
+		memset(&cmd, '\0', sizeof(cmd));
 		printf("Console is ready for the next command.\n");
 		read(STDIN_FILENO, cmd, sizeof(cmd));
-		//pthread_mutex_unlock(&consoleLock);
+		getWord(&arg, cmd);
 		
-		if (strncmp(cmd, "new server", 10) == 0) {
-			
-			
-			
+		if (arg == NULL) {
+			//do nothing
+		} else if (strcasecmp(arg, "load") == 0) {
+			getWord(&arg, cmd);
+			if (arg == NULL) {
+				//system("ls -1 ./modules/available | sed 's_.conf__' | tr '\\n' ' '");
+			} else {
+				activateModule(arg);
+			}//END IF
+		} else if (strcasecmp(arg, "unload") == 0) {
+			getWord(&arg, cmd);
+			if (arg == NULL) {
+				
+			} else {
+				deactivateModule(arg);
+			}//END IF
 		} else if (strncmp(cmd, "list", 4) == 0) {
 			//Command: list
 			listActiveSockets();
@@ -679,6 +786,7 @@ void * console() {
 				memset(&cmd, '\0', sizeof(cmd)-1);
 				read(STDIN_FILENO, cmd, sizeof(cmd));
 				x =	strtol(cmd, NULL, 10);
+				x = x - 1;
 				if (x < -1) {
 					printf("bad number, aborting!\n");
 				} else if (x == -1) {
@@ -696,7 +804,7 @@ void * console() {
 			//do nothing (for the moment)
 		} else if (strncmp(cmd, "monitors", 8) == 0) {
 			listNodes(monitorList(0, 1, TRUE));
-		} else if (strncmp(cmd, "exit", 4) == 0) {
+		} else if (strcasecmp(arg, "exit") == 0) {
 			//Command: exit
 			printf("Shutting down server... \n");
 			break;
@@ -709,6 +817,7 @@ void * console() {
 		}//END IF
 		printf("\n");
 		
+		getWord(&arg, "");
 		//printf("Number of active servers: %d\n", (servers[0].name == NULL ? 0 : 1));
 	}//END WHILE LOOP
 	return NULL;

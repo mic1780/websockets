@@ -14,6 +14,7 @@
  *   GNU General Public License for more details.
  *
  */
+//this file will be used to make libfunctions
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -361,6 +362,71 @@ void tellMonitors(int clientSocket, char * str, int len) {
 	message =	NULL;
 	
 	return;
+}//END FUNCTION
+
+void getWord(char ** word, char * str) {
+	int	i,
+			strSize,
+			wordSize = 0,
+			started = 0;
+	static int oldSize = 0;
+	static int oldI = 0;
+	static int oldStrSize = 0;
+	
+	//if word is malloced then free it for use
+	if (*word != NULL) {
+		memset(*word, '\0', oldSize);
+		free(*word);
+		*word = NULL;
+	}//END IF
+	
+	strSize =	strlen(str);
+	
+	if (strSize != oldStrSize) {
+		oldI = 0;
+		oldStrSize = strSize;
+	}//END IF
+	
+	if (oldStrSize == strSize && str[oldI] == '\n') {
+		oldI = 0;
+		return;
+	}//END IF
+	
+	for (i = oldI; i <= strSize; i++) {
+		if (started == 0 && (str[i] == ' ' || str[i] == '\t' || str[i] == '\n' || str[i] == '\r' || str[i] == '\0')) {
+			oldI += 1;
+			continue;
+		}//END IF
+		started = 1;
+		if (str[i] == ' ' || str[i] == '\t' || str[i] == '\n' || str[i] == '\r' || str[i] == '\0') {
+			break;
+		}//END IF
+		wordSize++;
+	}//END FOR LOOP
+	
+	if (started == 0) {
+		oldI = 0;
+		return;
+	}//END IF
+	
+	if (wordSize > 0) {
+		oldSize = sizeof(char) * (wordSize + 1);
+		*word = malloc(oldSize);
+		memset(*word, '\0', oldSize);
+		strncpy(*word, str+oldI, wordSize);
+		/**
+		for (i = 0; i <= wordSize; i++) {
+			printf("i = %d: '%c'\n", i, (*word)[i]);
+		}//END FOR LOOP
+		/**/
+	}//END IF
+	
+	oldI = i;
+	
+	if (*word == NULL || oldI >= strSize) {
+		oldI = 0;
+	}//END IF
+	
 }//END FUNCTION
 
 void testPrint(int line, char * func) {

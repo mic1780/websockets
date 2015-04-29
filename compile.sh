@@ -64,7 +64,8 @@ else
 	LIB_FOLDER="so"
 	LIB_EXTENSION="so"
 fi
-DEFAULT_FUNCTION_NAMES=("libfunctions")
+DEFAULT_FUNCTION_NAMES=("functions")
+#DEFAULT_FUNCTION_NAMES=("functions" "moduleFunctions")
 DEFAULT_LIB_NAMES=("sendMessage" "alterStruct" "performAction" "callFunction")
 DEFAULT_EXEC_NAMES=("execSQL" "getODBCDrivers" "getODBCDataSources");
 
@@ -210,6 +211,8 @@ fi
 if [ "$COMPILE_FUNCTION" == "1" ]; then
 	
 	for i in ${COMPILE_FUNCTION_NAMES[@]}; do
+		#echo "Generating $i.o"
+		#gcc -c -fPIC -o objects/lib$i.o src/$i.c
 		if [ $(contains "`echo ${DEFAULT_LIB_NAMES[@]}`" "$i") == "1" ]; then
 			echo "Do not compile $i here. (Use ./compile.sh -l $i)"
 		elif [ $(contains "`echo ${DEFAULT_EXEC_NAMES[@]}`" "$i") == "1" ]; then
@@ -284,12 +287,12 @@ if [ "$COMPILE_APP" == "1" ]; then
 	
 	if [ "$COMPILE_APP_NAME" == "" ]; then
 		echo "Creating websocket.$FILE_EXTENSION"
-		gcc -rdynamic -o bin/websocket.$FILE_EXTENSION src/websocket.c -L./$LIB_FOLDER -lfunctions -ldl -lpthread
-		#gcc -Wl,--export-all-symbols -o bin/websocket.$FILE_EXTENSION src/websocket.c -L./$LIB_FOLDER -lfunctions -ldl -lpthread
+		#gcc -rdynamic -o bin/websocket.$FILE_EXTENSION src/websocket.c -L./$LIB_FOLDER -lfunctions -ldl -lpthread
+		gcc -Wl,--export-all-symbols -o bin/websocket.$FILE_EXTENSION src/websocket.c src/moduleFunctions.c -L./$LIB_FOLDER -lfunctions -ldl -lpthread
 	else
 		echo "Creating $COMPILE_APP_NAME"
 		#gcc -rdynamic -o bin/$COMPILE_APP_NAME src/websocket.c -L./$LIB_FOLDER -lfunctions -ldl -lpthread
-		gcc --export-dynamic -o bin/$COMPILE_APP_NAME src/websocket.c -L./$LIB_FOLDER -lfunctions -ldl -lpthread
+		gcc --export-dynamic -o bin/$COMPILE_APP_NAME src/websocket.c src/moduleFunctions.c -L./$LIB_FOLDER -lfunctions -ldl -lpthread
 	fi
 	
 	gcc -o run.$FILE_EXTENSION src/run.c

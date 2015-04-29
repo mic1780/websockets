@@ -22,8 +22,10 @@
 
 typedef struct server {
 	char * name;
+	char * path;
 	char ip[16];
 	int port;
+	int isRunning;
 	pthread_t t;
 } serverStruct;
 
@@ -43,5 +45,13 @@ typedef struct clientNode {
 	struct clientNode * next;
 	struct clientNode * prev;
 } clientNode;
+
+typedef struct module {
+	struct module * next;
+	char * name;
+	char * path;
+	char ip[16];
+	int port;
+} module;
 
 #endif

@@ -34,8 +34,11 @@
 #include "structs.h"
 
 //PROTOTYPES
+extern serverStruct servers[10];
 
 //websocket.c
+extern void * server();
+extern void *printRedirect();
 extern void *serverStart();
 extern void *clientThread(void *s);
 extern void *consoleCommand();
@@ -69,6 +72,13 @@ void createNode(clientNode ** head, int sock, int * size);
 void destroyNode(clientNode ** head, int sock, int * size);
 clientNode * findNode(clientNode * head, int sock, int sockIsIndex);
 void listNodes(clientNode * head);
+
+//module functions
+void activateModule(char * name);
+void deactivateModule(char * name);
+int moduleIsActive(char * name);
+char * getModuleList(int isActiveFolder);
+void loadModule(char * name);
 
 //sendMessage.c
 extern void *sendMessage(int sock, char *s, int len);
