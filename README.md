@@ -3,6 +3,8 @@ Websockets
 
 This project is for a websocket server in C
 
+If you are looking for a modular websocket style server, check out <a href="https://github.com/mic1780/websockets/tree/modular">the modular branch here</a>
+
 Current Requirements
 ====================
 <ol>
